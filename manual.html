@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>photokara 使い方ガイド</title>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1c1c1a;
+    --paper: #f5f2ed;
+    --paper-2: #ede9e2;
+    --accent: #b5916a;
+    --accent-light: #d4b896;
+    --muted: #6b6560;
+    --border: #d8d3cc;
+    --green: #4a7c59;
+    --blue: #3d6b8a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Shippori Mincho', serif;
+    font-size: 16px;
+    line-height: 1.9;
+  }
+
+  /* ヘッダー */
+  .header {
+    background: var(--ink);
+    padding: 20px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-logo {
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    letter-spacing: 0.15em;
+    color: var(--paper);
+  }
+  .header-logo span { color: var(--accent); }
+  .header-back {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    color: #888;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .header-back:hover { color: var(--accent); }
+
+  /* ヒーロー */
+  .hero {
+    background: var(--ink);
+    padding: 80px 48px 60px;
+    border-bottom: 1px solid #333;
+  }
+  .hero-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .hero-label::before {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 1px;
+    background: var(--accent);
+  }
+  .hero h1 {
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 800;
+    color: var(--paper);
+    line-height: 1.25;
+    margin-bottom: 20px;
+    max-width: 700px;
+  }
+  .hero p {
+    font-size: 1rem;
+    color: #888;
+    max-width: 560px;
+    line-height: 1.9;
+  }
+
+  /* 目次 */
+  .toc {
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 48px;
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .toc-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .toc-links {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .toc-link {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    transition: all 0.2s;
+    background: var(--paper);
+  }
+  .toc-link:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: white;
+  }
+
+  /* メインコンテンツ */
+  .main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 80px 48px;
+  }
+
+  /* セクション */
+  .section {
+    margin-bottom: 80px;
+  }
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label::before {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+  }
+  .section h2 {
+    font-size: clamp(1.4rem, 2.5vw, 1.9rem);
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 24px;
+  }
+  .section p {
+    color: #444;
+    margin-bottom: 16px;
+    max-width: 680px;
+  }
+
+  /* タブ（今ある人・これから撮る人） */
+  .tab-wrapper {
+    margin: 48px 0 0;
+  }
+  .tabs {
+    display: flex;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 40px;
+  }
+  .tab-btn {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 14px 28px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .tab-btn.active {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+  }
+  .tab-btn .tab-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .tab-btn.active .tab-badge { background: var(--accent); color: white; }
+  .tab-btn:not(.active) .tab-badge { background: var(--border); color: var(--muted); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ステップ */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .step {
+    display: flex;
+    gap: 32px;
+    padding: 32px 0;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 2rem;
+    font-weight: 300;
+    color: var(--accent-light);
+    line-height: 1;
+    flex-shrink: 0;
+    width: 48px;
+    text-align: right;
+    padding-top: 4px;
+  }
+  .step-body { flex: 1; }
+  .step-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  .step-desc {
+    font-size: 0.92rem;
+    color: #555;
+    line-height: 1.85;
+    margin-bottom: 0;
+  }
+  .step-note {
+    margin-top: 14px;
+    background: var(--paper-2);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    border-radius: 0 3px 3px 0;
+    font-size: 0.85rem;
+    color: #555;
+    line-height: 1.75;
+  }
+  .step-note strong { color: var(--ink); }
+
+  /* ポイントカード */
+  .point-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .point-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+  }
+  .point-card-icon {
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+  }
+  .point-card h4 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .point-card p {
+    font-size: 0.83rem;
+    color: var(--muted);
+    line-height: 1.8;
+    margin: 0;
+  }
+
+  /* スコア説明 */
+  .score-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 24px;
+    font-size: 0.9rem;
+  }
+  .score-table th {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--border);
+    background: var(--paper-2);
+  }
+  .score-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.7;
+  }
+  .score-table tr:last-child td { border-bottom: none; }
+  .grade {
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 2px 10px;
+    border-radius: 2px;
+  }
+  .grade-s { background: #e8f5e9; color: #2e7d32; }
+  .grade-a { background: #f1f8e9; color: #558b2f; }
+  .grade-b { background: #fff3e0; color: #e65100; }
+  .grade-c { background: #fce4ec; color: #c62828; }
+
+  /* 評価軸の説明 */
+  .axis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .axis-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+  }
+  .axis-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .axis-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .axis-desc {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.75;
+    margin: 0;
+  }
+
+  /* FAQ */
+  .faq-list {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .faq-item {
+    border-bottom: 1px solid var(--border);
+  }
+  .faq-q {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 20px 0;
+    font-family: 'Shippori Mincho', serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    line-height: 1.5;
+  }
+  .faq-q::before {
+    content: 'Q.';
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .faq-q::after {
+    content: '+';
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    color: var(--muted);
+    margin-left: auto;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+  .faq-item.open .faq-q::after {
+    transform: rotate(45deg);
+    color: var(--accent);
+  }
+  .faq-a {
+    display: none;
+    padding: 0 0 20px 26px;
+    font-size: 0.88rem;
+    color: #555;
+    line-height: 1.9;
+  }
+  .faq-item.open .faq-a { display: block; }
+
+  /* CTA */
+  .cta {
+    background: var(--ink);
+    border-radius: 6px;
+    padding: 48px;
+    text-align: center;
+    margin-top: 80px;
+  }
+  .cta h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--paper);
+    margin-bottom: 12px;
+  }
+  .cta p {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 28px;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .cta-btn {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.12em;
+    padding: 16px 36px;
+    border-radius: 2px;
+    text-decoration: none;
+    transition: all 0.25s;
+  }
+  .cta-btn:hover { background: #c9a07a; transform: translateY(-2px); }
+
+  /* レスポンシブ */
+  @media (max-width: 640px) {
+    .header { padding: 16px 24px; }
+    .hero { padding: 48px 24px 40px; }
+    .toc { padding: 20px 24px; gap: 16px; }
+    .main { padding: 48px 24px; }
+    .step { flex-direction: column; gap: 12px; }
+    .step-num { width: auto; text-align: left; }
+    .cta { padding: 32px 24px; }
+    .tabs { overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header class="header">
+  <div class="header-logo">photo<span>kara</span></div>
+  <a href="/" class="header-back">← 診断ツールに戻る</a>
+</header>
+
+<!-- ヒーロー -->
+<div class="hero">
+  <p class="hero-label">USER GUIDE</p>
+  <h1>photokaraの<br>使い方ガイド</h1>
+  <p>商品写真をAIで診断するためのステップガイドです。今ある写真を採点したい方と、これから撮影する方に分けて説明しています。</p>
+</div>
+
+<!-- 目次 -->
+<nav class="toc">
+  <span class="toc-label">CONTENTS</span>
+  <div class="toc-links">
+    <a href="#howto" class="toc-link">使い方</a>
+    <a href="#score" class="toc-link">スコアの読み方</a>
+    <a href="#axes" class="toc-link">評価軸の説明</a>
+    <a href="#faq" class="toc-link">よくある質問</a>
+  </div>
+</nav>
+
+<main class="main">
+
+  <!-- ===== 使い方 ===== -->
+  <section class="section" id="howto">
+    <p class="section-label">HOW TO USE</p>
+    <h2>使い方</h2>
+    <p>まず、今ある写真を診断したいのか、これから撮影する基準を知りたいのかを選んでください。目的によって準備するものが変わります。</p>
+
+    <div class="tab-wrapper">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('existing', this)">
+          今ある写真を診断する
+          <span class="tab-badge">現状把握</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('new', this)">
+          これから撮影する
+          <span class="tab-badge">基準づくり</span>
+        </button>
+      </div>
+
+      <!-- 今ある写真タブ -->
+      <div class="tab-content active" id="tab-existing">
+        <p style="color:#555; font-size:0.9rem; margin-bottom:32px;">現在ECサイトで使っている写真と商品説明文をそのままアップしてください。現状のスコアと具体的な改善アドバイスが得られます。</p>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">01</div>
+            <div class="step-body">
+              <div class="step-title">出品先のプラットフォームを選択する</div>
+              <div class="step-desc">Amazon・楽天市場・Yahoo!ショッピング・BASE/STORES・自社ECサイト・Instagram Shopから選択してください。プラットフォームごとの規定（1枚目の白背景必須かどうかなど）に合わせて採点基準が変わります。</div>
+              <div class="step-note"><strong>Amazonの場合：</strong>1枚目は純白背景・商品が画像の85%以上という規定があります。この規定を満たしているかどうかも採点に反映されます。</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">02</div>
+            <div class="step-body">
+              <div class="step-title">商品カテゴリを選択する</div>
+              <div class="step-desc">金属・キッチン用品／食品・菓子・飲料／アウトドア・スポーツ／アパレル・雑貨／コスメ・美容／その他から選択してください。カテゴリによって理想的な写真の基準が異なるため、適切なカテゴリを選ぶことで精度が上がります。</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">03</div>
+            <div class="step-body">
+              <div class="step-title">写真をアップロードし、役割を選択する</div>
+              <div class="step-desc">写真をアップロードすると、各写真の下に役割選択メニューが表示されます。それぞれの写真が「1枚目：サムネ」「2枚目：白背景全体像」「3枚目：ディテール」など、どの役割で使っているかを選択してください。</div>
+              <div class="step-note">
+                <strong>枚数：</strong>最大8枚までアップロードできます。<br>
+                <strong>ファイル形式：</strong>JPEG・PNG・WebP<br>
+                <strong>ファイルサイズ：</strong>上限なし（大きいほど解像度スコアが上がります）<br>
+                <strong>推奨：</strong>実際にECサイトで使っている全枚数をアップしてください
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">04</div>
+            <div class="step-body">
+              <div class="step-title">ECサイトの商品説明文をそのままコピーして貼り付ける</div>
+              <div class="step-desc">現在ECサイトで使っている商品説明文・キャッチコピー・スペック情報をそのままコピーして貼り付けてください。「今の説明文がどれだけEC向けに機能しているか」を採点します。</div>
+              <div class="step-note"><strong>ポイント：</strong>説明文を入力しないと「テキスト訴求力」の採点ができません。現状の正確な診断には必ず入力してください。</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">05</div>
+            <div class="step-body">
+              <div class="step-title">「診断する」ボタンを押す</div>
+              <div class="step-desc">AIが写真と説明文を分析します。枚数や画像サイズによりますが、通常15〜30秒で結果が表示されます。スコア・グレード・各評価軸の点数と具体的な改善アドバイスが表示されます。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- これから撮影タブ -->
+      <div class="tab-content" id="tab-new">
+        <p style="color:#555; font-size:0.9rem; margin-bottom:32px;">撮影前にphotokaraを使うことで、「何点の写真を目指すか」の基準を作ることができます。テスト撮影→診断→修正のサイクルを回してください。</p>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">01</div>
+            <div class="step-body">
+              <div class="step-title">まず出品先と組写真の構成を決める</div>
+              <div class="step-desc">どのプラットフォームに出品するかを確認し、何枚の写真をどんな役割で構成するかを事前に決めてください。Amazonなら1枚目の白背景は必須です。自社ECなら1枚目はサムネとして印象訴求を優先できます。</div>
+              <div class="point-grid">
+                <div class="point-card">
+                  <div class="point-card-icon">🛒</div>
+                  <h4>Amazon・楽天・Yahoo!</h4>
+                  <p>1枚目：白背景全体像（必須）<br>2枚目以降：シーン・インフォグラフィック</p>
+                </div>
+                <div class="point-card">
+                  <div class="point-card-icon">🏪</div>
+                  <h4>自社EC・BASE</h4>
+                  <p>1枚目：印象訴求・世界観（推奨）<br>2枚目：白背景全体像</p>
+                </div>
+                <div class="point-card">
+                  <div class="point-card-icon">📱</div>
+                  <h4>Instagram Shop</h4>
+                  <p>正方形または縦長4:5が最適<br>ライフスタイル感・世界観を最優先</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">02</div>
+            <div class="step-body">
+              <div class="step-title">テスト撮影をして1枚だけ診断してみる</div>
+              <div class="step-desc">本撮影の前に、ライティングや背景のセットアップが決まった段階でテスト撮影をしてください。1枚だけでもphotokaraで診断することで、方向性が合っているかを確認できます。</div>
+              <div class="step-note"><strong>元データのまま提出：</strong>カメラやスマホで撮ったオリジナルファイルをそのままアップしてください。解像度が高いほど「解像度・画質」の項目で加点されます。サイズ上限はありません。</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">03</div>
+            <div class="step-body">
+              <div class="step-title">採点結果をもとにセットを調整する</div>
+              <div class="step-desc">改善アドバイスには「何が問題か・なぜ問題か・どう直すか」が具体的に書かれています。ライティング・背景・構図・小道具などを調整して再撮影し、もう一度診断してください。</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">04</div>
+            <div class="step-body">
+              <div class="step-title">目標スコアに到達したら本撮影へ</div>
+              <div class="step-desc">グレードAを目標に調整してください。グレードSは「即戦力」ですが、全商品でSを目指す必要はありません。まずAを安定して取れる撮影環境を作ることが最初の目標です。</div>
+              <div class="step-note"><strong>撮影後も診断を：</strong>本撮影が終わったら全枚数をアップして組写真としての完成度を確認してください。役割ごとに採点基準が変わるため、組写真全体の評価ができます。</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">05</div>
+            <div class="step-body">
+              <div class="step-title">訴求テキストも一緒に作って採点する</div>
+              <div class="step-desc">写真が完成したら、商品説明文も一緒に作ってphotokaraで採点してください。「ブランド名・商品名・使用シーン・ベネフィット・素材・価格・ターゲット」の7軸で評価します。写真と説明文が揃って初めて組写真として機能します。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== スコアの読み方 ===== -->
+  <section class="section" id="score">
+    <p class="section-label">SCORE GUIDE</p>
+    <h2>スコアの読み方</h2>
+    <p>診断結果は総合スコア（0〜100点）とグレード（S/A/B/C）で表示されます。各評価軸のスコアと具体的な改善アドバイスも確認してください。</p>
+
+    <table class="score-table">
+      <thead>
+        <tr>
+          <th>グレード</th>
+          <th>スコア</th>
+          <th>判定</th>
+          <th>次のアクション</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="grade grade-s">S</span></td>
+          <td>80点以上</td>
+          <td>即戦力。そのまま出品できる品質</td>
+          <td>このクオリティを全商品の基準にする</td>
+        </tr>
+        <tr>
+          <td><span class="grade grade-a">A</span></td>
+          <td>65〜79点</td>
+          <td>良好。改善すればさらに効果が上がる</td>
+          <td>アドバイスの上位1〜2項目だけ修正する</td>
+        </tr>
+        <tr>
+          <td><span class="grade grade-b">B</span></td>
+          <td>45〜64点</td>
+          <td>要改善。売上機会を逃している可能性</td>
+          <td>ライティングか背景から優先的に改善する</td>
+        </tr>
+        <tr>
+          <td><span class="grade grade-c">C</span></td>
+          <td>44点以下</td>
+          <td>再撮影を推奨</td>
+          <td>撮影環境を見直して再撮影する</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===== 評価軸の説明 ===== -->
+  <section class="section" id="axes">
+    <p class="section-label">EVALUATION AXES</p>
+    <h2>評価軸の説明</h2>
+    <p>photokaraは8つの評価軸でスコアを算出します。各軸は写真の役割（1枚目サムネ・2枚目白背景など）に応じて重み付けが変わります。</p>
+
+    <div class="axis-grid">
+      <div class="axis-card">
+        <div class="axis-name">01 — BRIGHTNESS</div>
+        <div class="axis-title">明るさ</div>
+        <p class="axis-desc">適切な露出かどうか。暗すぎると商品の魅力が伝わらず、明るすぎるとハイライトが飛んで質感が失われます。</p>
+      </div>
+      <div class="axis-card">
+        <div class="axis-name">02 — CONTRAST</div>
+        <div class="axis-title">コントラスト</div>
+        <p class="axis-desc">商品が背景から際立っているか。コントラストが低いと商品が「埋もれて」見え、クリック率が下がります。</p>
+      </div>
+      <div class="axis-card">
+        <div class="axis-name">03 — SHARPNESS</div>
+        <div class="axis-title">シャープさ</div>
+        <p class="axis-desc">ピントとブレの品質。特にディテール・素材感を見せる写真では最重要の軸です。</p>
+      </div>
+      <div class="axis-card">
+        <div class="axis-name">04 — LUXURY</div>
+        <div class="axis-title">高級感</div>
+        <p class="axis-desc">プレミアム・高品質に見えるか。ライティングの質・背景の選択・小道具の配置が大きく影響します。</p>
+      </div>
+      <div class="axis-card">
+        <div class="axis-name">05 — CLEANLINESS</div>
+        <div class="axis-title">清潔感</div>
+        <p class="axis-desc">背景・全体の清潔さ。ホコリ・シワ・不要な映り込みなどが減点対象になります。</p>
+      </div>
+      <div class="axis-card">
+        <div class="axis-name">06 — TEXTURE</div>
+        <div class="axis-title">質感・素材感</div>
+        <p class="axis-desc">素材の魅力が伝わるか。金属の輝き、食品の瑞々しさ、布の柔らかさなどカテゴリ別に評価します。</p>
+      </div>
+      <div class="axis-card">
+        <div class="axis-name">07 — TEXT APPEAL</div>
+        <div class="axis-title">テキスト訴求力</div>
+        <p class="axis-desc">商品説明文のEC完全性。ブランド名・商品名・使用シーン・ベネフィット・素材・価格・ターゲットの7軸で評価します。</p>
+      </div>
+      <div class="axis-card">
+        <div class="axis-name">08 — RESOLUTION</div>
+        <div class="axis-title">解像度・画質</div>
+        <p class="axis-desc">元画像の解像度は加点要素です。12MP以上で100点。高解像度の素材は将来の用途（印刷・大型バナーなど）にも対応できます。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FAQ ===== -->
+  <section class="section" id="faq">
+    <p class="section-label">FAQ</p>
+    <h2>よくある質問</h2>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">画像のファイルサイズに上限はありますか？</button>
+        <div class="faq-a">上限はありません。カメラやスマホで撮ったオリジナルファイルをそのままアップしてください。解像度が高いほど「解像度・画質」の項目で加点されます。ただし、ファイルサイズが大きすぎると送信に時間がかかる場合があります。</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">何枚まで同時に診断できますか？</button>
+        <div class="faq-a">最大8枚まで同時にアップロードできます。商品ページで使っている全枚数をまとめてアップすることで、組写真としての完成度も評価できます。</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">プラットフォームを選ぶと何が変わりますか？</button>
+        <div class="faq-a">プラットフォームごとの規定が採点基準に反映されます。例えばAmazonを選ぶと「1枚目は純白背景・商品が85%以上を占めること・テキスト禁止」という規定でAIが採点します。自社ECサイトを選ぶと、1枚目にサムネとしての印象訴求を重視した採点になります。</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">写真の「役割」は何のために選ぶのですか？</button>
+        <div class="faq-a">ECの商品ページは「組写真」という写真表現のカテゴリです。1枚目のサムネと3枚目のディテール写真では、評価すべきポイントが全く異なります。役割を選ぶことで、それぞれの写真がその役割として機能しているかどうかを正確に採点できます。役割を選ばないと、シーン撮影が「白背景ではない」という理由で不当に低スコアになる場合があります。</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">テキストを入力しないとどうなりますか？</button>
+        <div class="faq-a">「テキスト訴求力」の評価軸が採点できないため、総合スコアが低く出る場合があります。現状の正確な診断には、ECサイトで使っている説明文をそのままコピーして貼り付けることをお勧めします。</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">診断結果はどこかに保存されますか？</button>
+        <div class="faq-a">β版では診断結果のスコアとカテゴリ情報がサービス改善のために記録されます。アップロードした写真そのものは保存されません。</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">スマホから使えますか？</button>
+        <div class="faq-a">はい、スマホから直接撮影した写真をアップして診断できます。スマホのカメラは一般的に12MP以上あるため、解像度スコアも高くなります。</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">診断に失敗した場合はどうすればいいですか？</button>
+        <div class="faq-a">ページをリロードして最初からやり直してください。それでも失敗する場合は、まず1枚だけでお試しください。複数枚の場合は処理に時間がかかることがあります。改善しない場合はお問い合わせください。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta">
+    <h3>さっそく診断してみる</h3>
+    <p>β版・無料・登録不要。今すぐ商品写真のスコアを確認できます。</p>
+    <a href="/#tool" class="cta-btn">診断ツールを使う →</a>
+  </div>
+
+</main>
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  function toggleFaq(btn) {
+    const item = btn.parentElement;
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!wasOpen) item.classList.add('open');
+  }
+</script>
+
+</body>
+</html>
