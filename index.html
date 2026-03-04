@@ -782,7 +782,7 @@
 <nav>
   <a href="#" class="logo">photo<span>kara</span></a>
   <ul>
-    <li><a href="#why">課題</a></li>
+    <li><a href="#why">あなたの写真、大丈夫？</a></li>
     <li><a href="#how">使い方</a></li>
     <li><a href="#tool">診断ツール</a></li>
     <li><a href="#contact" class="nav-cta">お問い合わせ</a></li>
@@ -920,6 +920,23 @@
           <div class="score-item-val" style="font-weight:600;">84 / 100 [A 良好]</div>
         </div>
       </div>
+      <div style="margin-top:28px; border-left:3px solid var(--accent); padding:20px 24px; background:var(--paper-2); border-radius:0 4px 4px 0;">
+        <div style="font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.15em; color:var(--accent); margin-bottom:14px;">IMPROVEMENT ADVICE</div>
+        <ul style="list-style:none; display:flex; flex-direction:column; gap:14px;">
+          <li style="font-size:0.88rem; color:var(--muted); line-height:1.9; padding-left:18px; position:relative;">
+            <span style="position:absolute;left:0;color:var(--accent);">→</span>
+            <strong style="color:var(--ink);">【コントラスト】</strong>商品と背景の明暗差がやや不足しています。鉄の質感が背景に溶け込み、商品の存在感が弱まっています。黒または深いグレーの背景に変更するか、サイド光を強めて商品の立体感を際立たせることを推奨します。
+          </li>
+          <li style="font-size:0.88rem; color:var(--muted); line-height:1.9; padding-left:18px; position:relative;">
+            <span style="position:absolute;left:0;color:var(--accent);">→</span>
+            <strong style="color:var(--ink);">【訴求テキスト】</strong>商品説明に価格・サイズの数値情報が不足しています。「いくらで買えるか」が見えないと購買決定のハードルが上がります。「直径24cm・重量1.2kg・12,000円」など具体的な数値を冒頭に記載することで訴求力が大幅に向上します。
+          </li>
+          <li style="font-size:0.88rem; color:var(--muted); line-height:1.9; padding-left:18px; position:relative;">
+            <span style="position:absolute;left:0;color:var(--accent);">→</span>
+            <strong style="color:var(--ink);">【質感演出】</strong>鉄フライパンの最大の魅力である「焼き面の質感」がまだ伝わりきっていません。実際に調理した後の焼き色や、表面の凹凸をクローズアップした寄りカットを1枚追加することで、素材の説得力が格段に上がります。
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </section>
@@ -998,7 +1015,6 @@
     <h2 class="reveal">お問い合わせ</h2>
     <p class="reveal">
       βテストへの参加・導入のご相談・撮影のご依頼など、お気軽にご連絡ください。
-      燕三条エリアのメーカー様は特に歓迎いたします。
     </p>
 
     <form class="reveal" onsubmit="handleSubmit(event)" id="contact-form">
@@ -1138,12 +1154,12 @@
     }));
 
     // プロンプト構築
-    const prompt = `あなたはプロの商業写真ディレクターです。EC販促における写真の訴求力を専門的に評価してください。
+    const prompt = `あなたは20年以上のキャリアを持つプロの商業写真ディレクターです。EC販促における写真の訴求力を専門家の視点で評価し、具体的で実践的なアドバイスを提供してください。
 
 カテゴリ：${selectedCategory}
 訴求テキスト：${text || '（未入力）'}
 
-添付した${selectedFiles.length}枚の商品写真を以下の軸で評価し、必ずJSON形式のみで回答してください。
+添付した${selectedFiles.length}枚の商品写真を以下の軸で評価してください。
 
 評価軸：
 1. 明るさ（0〜100）：適切な露出か。暗すぎ・明るすぎではないか
@@ -1154,24 +1170,33 @@
 6. 質感素材感（0〜100）：素材の魅力が伝わるか
 7. テキスト訴求力（0〜100）：訴求テキストのEC完全性
 
-回答はこのJSON形式のみで返してください（説明文不要）：
+adviceは必ず以下の条件で書いてください：
+- 3〜5項目
+- 各アドバイスは2〜4文の具体的な文章
+- 「何が問題か」「なぜ問題か」「どう直すか」を必ず含める
+- ライティング・構図・背景・テキストなど具体的な撮影技術に言及する
+- 「〜してください」「〜することを推奨します」などの実践的な語尾にする
+- カテゴリ（${selectedCategory}）の特性に合わせた内容にする
+
+回答はこのJSON形式のみで返してください（前後に説明文・コードブロック不要）：
 {
   "overall": 数値,
   "grade": "S/A/B/C",
-  "summary": "総合評価を2〜3文で",
+  "summary": "総合評価を3〜4文で。写真の良い点と改善点を具体的に述べる",
   "axes": [
-    {"name": "明るさ", "score": 数値, "comment": "一言コメント"},
-    {"name": "コントラスト", "score": 数値, "comment": "一言コメント"},
-    {"name": "シャープさ", "score": 数値, "comment": "一言コメント"},
-    {"name": "高級感", "score": 数値, "comment": "一言コメント"},
-    {"name": "清潔感", "score": 数値, "comment": "一言コメント"},
-    {"name": "質感・素材感", "score": 数値, "comment": "一言コメント"},
-    {"name": "テキスト訴求力", "score": 数値, "comment": "一言コメント"}
+    {"name": "明るさ", "score": 数値, "comment": "具体的な理由を含む2文のコメント"},
+    {"name": "コントラスト", "score": 数値, "comment": "具体的な理由を含む2文のコメント"},
+    {"name": "シャープさ", "score": 数値, "comment": "具体的な理由を含む2文のコメント"},
+    {"name": "高級感", "score": 数値, "comment": "具体的な理由を含む2文のコメント"},
+    {"name": "清潔感", "score": 数値, "comment": "具体的な理由を含む2文のコメント"},
+    {"name": "質感・素材感", "score": 数値, "comment": "具体的な理由を含む2文のコメント"},
+    {"name": "テキスト訴求力", "score": 数値, "comment": "具体的な理由を含む2文のコメント"}
   ],
   "advice": [
-    "改善アドバイス1",
-    "改善アドバイス2",
-    "改善アドバイス3"
+    "【ライティング】問題点の説明。なぜ問題かの理由。具体的な改善方法（例：白いレフ板を商品の左45度に置くなど）。",
+    "【構図・サイズ感】問題点の説明。なぜ問題かの理由。具体的な改善方法。",
+    "【背景・環境】問題点の説明。なぜ問題かの理由。具体的な改善方法。",
+    "【訴求テキスト】問題点の説明。なぜ問題かの理由。具体的な改善方法（例：価格・サイズの数値を追加するなど）。"
   ]
 }`;
 
