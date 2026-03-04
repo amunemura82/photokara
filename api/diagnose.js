@@ -1,38 +1,83 @@
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbx0aMZq54sK-iA8YHvs_3ERiGQXtz80X0NR45NgyFZhYekjzMnjJq1PpPKiQIiq2Jbe/exec';
+// pages/api/diagnose.js
+
+const GAS_URL =
+  'https://script.google.com/macros/s/AKfycbx0aMZq54sK-iA8YHvs_3ERiGQXtz80X0NR45NgyFZhYekjzMnjJq1PpPKiQIiq2Jbe/exec';
 
 export const config = {
   api: {
-    bodyParser: {
-      sizeLimit: '20mb',
-    },
+    bodyParser: { sizeLimit: '20mb' },
   },
 };
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+// --- helper: 安全にJSON抽出する ---
+function extractJsonCandidate(rawText) {
+  if (!rawText || typeof rawText !== 'string') return null;
+
+  // 1) ```json ... ``` があればそれを優先
+  const fence = rawText.match(/```json\s*([\s\S]*?)\s*```/i);
+  if (fence?.[1]) return fence[1].trim();
+
+  // 2) それ以外は「最初の { から最後の }」を切り出す（最低限）
+  const first = rawText.indexOf('{');
+  const last = rawText.lastIndexOf('}');
+  if (first === -1 || last === -1 || last <= first) return null;
+
+  return rawText.slice(first, last + 1).trim();
+}
+
+// --- helper: JSON.parseを安全に ---
+function safeJsonParse(jsonStr) {
+  if (!jsonStr) return { ok: false, error: 'No JSON string' };
+  try {
+    return { ok: true, value: JSON.parse(jsonStr) };
+  } catch (e) {
+    return { ok: false, error: e?.message || 'JSON parse error' };
   }
+}
 
-  const { prompt, imageContents, category, text } = req.body;
+// --- helper: GASに送る（失敗してもthrowしない） ---
+async function postToGAS(payload) {
+  try {
+    const r = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-  if (!prompt) {
+    // GAS側がエラーでも落とさない（ログだけ）
+    if (!r.ok) {
+      const t = await r.text().catch(() => '');
+      console.error('GAS logging failed:', r.status, t);
+    }
+  } catch (e) {
+    console.error('GAS logging exception:', e?.message || e);
+  }
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
+
+  // req.bodyが壊れてても落ちないように守る
+  const prompt = req.body?.prompt;
+  const imageContents = req.body?.imageContents;
+  const category = req.body?.category;
+  const text = req.body?.text;
+
+  if (!prompt || typeof prompt !== 'string') {
     return res.status(400).json({ error: 'prompt is required' });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured' });
-  }
+  // 画像ブロックのバリデーション（Claude形式の image block を想定）
+  const validImages = Array.isArray(imageContents)
+    ? imageContents.filter(
+        (img) => img && img.type === 'image' && img.source?.type === 'base64' && typeof img.source?.data === 'string' && img.source.data.length > 0
+      )
+    : [];
 
-  // 画像コンテンツのバリデーション
-  const validImages = (imageContents || []).filter(img => 
-    img && img.source && img.source.data && img.source.data.length > 0
-  );
-
-  const contentBlocks = [
-    ...validImages,
-    { type: 'text', text: prompt }
-  ];
+  const contentBlocks = [...validImages, { type: 'text', text: prompt }];
 
   try {
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -40,64 +85,85 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
         model: 'claude-opus-4-5',
         max_tokens: 1500,
-        messages: [
-          { role: 'user', content: contentBlocks }
-        ]
-      })
+        temperature: 0,
+        // ここが重要：JSONだけ返すことを強制
+        system:
+          'Return ONLY valid JSON. No prose. No markdown. No code fences. Use double quotes. No trailing commas.',
+        messages: [{ role: 'user', content: contentBlocks }],
+      }),
     });
 
-    // Anthropicのエラー詳細をログに出力
     if (!anthropicRes.ok) {
-      const errText = await anthropicRes.text();
+      const errText = await anthropicRes.text().catch(() => '');
       console.error('Anthropic API error:', anthropicRes.status, errText);
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: `Anthropic API error: ${anthropicRes.status}`,
-        detail: errText
+        detail: errText,
       });
     }
 
     const data = await anthropicRes.json();
-    const rawText = data.content
-      .filter(b => b.type === 'text')
-      .map(b => b.text)
-      .join('');
 
-    const match = rawText.match(/\{[\s\S]*\}/);
-    if (!match) {
-      console.error('No JSON found in response:', rawText);
-      return res.status(500).json({ error: 'Invalid response format', raw: rawText });
-    }
+    // Claudeの返答からテキストを連結
+    const rawText = Array.isArray(data?.content)
+      ? data.content.filter((b) => b?.type === 'text').map((b) => b.text).join('')
+      : '';
 
-    const parsed = JSON.parse(match[0]);
+    // JSON候補抽出
+    const jsonCandidate = extractJsonCandidate(rawText);
 
-    // Googleスプレッドシートに記録（失敗しても診断結果は返す）
-    try {
-      await fetch(GAS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          category: category || '',
-          text: text || '',
-          overall: parsed.overall,
-          grade: parsed.grade,
-          axes: parsed.axes,
-          advice: parsed.advice,
-          summary: parsed.summary
-        })
+    // パース（失敗しても落ちない）
+    const parsedResult = safeJsonParse(jsonCandidate);
+
+    if (!parsedResult.ok) {
+      // パース失敗でも、原因解析できるように返す（落とさない）
+      console.error('JSON parse failed:', parsedResult.error);
+      console.error('rawText:', rawText);
+      console.error('jsonCandidate:', jsonCandidate);
+
+      // GASへも「失敗ログ」を送っておく（機能維持）
+      await postToGAS({
+        category: category || '',
+        text: text || '',
+        error: 'JSON_PARSE_FAILED',
+        detail: parsedResult.error,
+        raw: rawText?.slice?.(0, 5000) || rawText, // 長すぎるとGASが死ぬので上限
       });
-    } catch (gasErr) {
-      console.error('GAS logging failed:', gasErr.message);
+
+      return res.status(200).json({
+        ok: false,
+        error: 'JSON_PARSE_FAILED',
+        detail: parsedResult.error,
+        raw: rawText,
+      });
     }
 
-    return res.status(200).json({ result: match[0] });
+    const parsed = parsedResult.value;
 
+    // GASに記録（ここが落ちても診断は返す）
+    await postToGAS({
+      category: category || '',
+      text: text || '',
+      overall: parsed?.overall ?? '',
+      grade: parsed?.grade ?? '',
+      axes: parsed?.axes ?? '',
+      advice: parsed?.advice ?? '',
+      summary: parsed?.summary ?? '',
+    });
+
+    // フロントには「パース済みオブジェクト」を返す（扱いやすい）
+    return res.status(200).json({
+      ok: true,
+      result: parsed,
+      raw: rawText,
+    });
   } catch (err) {
-    console.error('Handler error:', err.message);
-    return res.status(500).json({ error: err.message });
+    console.error('Handler error:', err?.message || err);
+    return res.status(500).json({ error: err?.message || 'Unknown error' });
   }
 }
