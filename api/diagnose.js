@@ -1,6 +1,5 @@
 // pages/api/diagnose.js
 
-// ✅ あなたのGAS URL（必要なら差し替え）
 const GAS_URL =
   'https://script.google.com/macros/s/AKfycbx0aMZq54sK-iA8YHvs_3ERiGQXtz80X0NR45NgyFZhYekjzMnjJq1PpPKiQIiq2Jbe/exec';
 
@@ -8,9 +7,7 @@ export const config = {
   api: { bodyParser: { sizeLimit: '20mb' } },
 };
 
-/**
- * GASに送信（失敗してもthrowしない）
- */
+/** GASへ送信（失敗してもthrowしない） */
 async function postToGAS(payload) {
   try {
     const r = await fetch(GAS_URL, {
@@ -18,7 +15,6 @@ async function postToGAS(payload) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-
     if (!r.ok) {
       const t = await r.text().catch(() => '');
       console.error('[GAS] failed:', r.status, t);
@@ -28,10 +24,7 @@ async function postToGAS(payload) {
   }
 }
 
-/**
- * Cloudinaryにbase64画像をアップロードして secure_url を返す
- * 失敗時は throw（呼び出し元で握りつぶす）
- */
+/** Cloudinaryアップロード（base64 -> secure_url） */
 async function uploadToCloudinary(base64Data, index = 0) {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
@@ -50,12 +43,9 @@ async function uploadToCloudinary(base64Data, index = 0) {
   const folder = 'photokara';
 
   const { createHash } = await import('crypto');
-
-  // 署名対象：folder と timestamp（formに同じパラメータを必ず入れる）
   const signStr = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
   const signature = createHash('sha1').update(signStr).digest('hex');
 
-  // FormDataで送る（base64が大きくても安定）
   const form = new FormData();
   form.append('file', `data:image/jpeg;base64,${base64Data}`);
   form.append('api_key', apiKey);
@@ -88,9 +78,7 @@ async function uploadToCloudinary(base64Data, index = 0) {
   return data.secure_url;
 }
 
-/**
- * Claude(tool_use)の出力を正規化
- */
+/** tool_useの出力を最低限正規化 */
 function normalizeDiagnosis(input) {
   const out = {
     overall: typeof input?.overall === 'number' ? input.overall : Number(input?.overall ?? 0),
@@ -102,7 +90,6 @@ function normalizeDiagnosis(input) {
   };
 
   if (!['S', 'A', 'B', 'C'].includes(out.grade)) out.grade = 'B';
-
   out.overall = Math.max(0, Math.min(100, out.overall));
 
   out.axes = out.axes
@@ -121,18 +108,24 @@ function normalizeDiagnosis(input) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+  // 必須：Anthropic
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  if (!anthropicKey) {
+    return res.status(500).json({ ok: false, error: 'ANTHROPIC_API_KEY not configured' });
+  }
 
+  // 受け取り（フロントが送っていない場合は空でOK）
   const prompt = req.body?.prompt;
-  const imageContents = req.body?.imageContents;
   const category = req.body?.category || '';
   const text = req.body?.text || '';
+  const platform = req.body?.platform || ''; // ★列ズレ防止用に必ず送る
+  const roles = req.body?.roles || [];       // ★列ズレ防止用に必ず送る（配列でも文字列でもOK）
+  const imageContents = req.body?.imageContents;
 
   if (!prompt || typeof prompt !== 'string') {
-    return res.status(400).json({ error: 'prompt is required' });
+    return res.status(400).json({ ok: false, error: 'prompt is required' });
   }
 
   // 画像ブロック（Claude形式）をバリデーション
@@ -146,13 +139,9 @@ export default async function handler(req, res) {
       )
     : [];
 
-  // Claudeへ送る content
-  const contentBlocks = [
-    ...validImages,
-    { type: 'text', text: prompt },
-  ];
+  const contentBlocks = [...validImages, { type: 'text', text: prompt }];
 
-  // ✅ tool定義：JSON文字列ではなく構造化データで返す（JSON.parse不要）
+  // ✅ Claude：tool_useで構造化出力（JSON.parse不要）
   const tools = [
     {
       name: 'emit_diagnosis',
@@ -185,15 +174,15 @@ export default async function handler(req, res) {
     },
   ];
 
-  // ✅ まずは Claude 診断
   let diagnosis = null;
   let claudeRaw = '';
+
   try {
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
+        'x-api-key': anthropicKey,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
@@ -212,6 +201,8 @@ export default async function handler(req, res) {
 
       await postToGAS({
         category,
+        platform,
+        roles,
         text,
         error: 'CLAUDE_API_ERROR',
         claudeStatus: anthropicRes.status,
@@ -227,7 +218,6 @@ export default async function handler(req, res) {
 
     const data = await anthropicRes.json();
 
-    // 参考用：textブロックがあれば raw も残す（UI確認に便利）
     claudeRaw = Array.isArray(data?.content)
       ? data.content.filter((b) => b?.type === 'text').map((b) => b.text).join('')
       : '';
@@ -241,6 +231,8 @@ export default async function handler(req, res) {
 
       await postToGAS({
         category,
+        platform,
+        roles,
         text,
         error: 'TOOL_USE_MISSING',
         claudeRaw: claudeRaw.slice(0, 5000),
@@ -259,6 +251,8 @@ export default async function handler(req, res) {
 
     await postToGAS({
       category,
+      platform,
+      roles,
       text,
       error: 'CLAUDE_EXCEPTION',
       detail: (e?.message || String(e)).slice(0, 5000),
@@ -267,7 +261,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ ok: false, error: e?.message || 'Unknown error' });
   }
 
-  // ✅ 次に Cloudinary アップロード（失敗しても診断結果は返す）
+  // ✅ Cloudinary：失敗しても診断結果は返す
   let imageUrls = [];
   let cloudinaryError = '';
   if (validImages.length > 0) {
@@ -281,22 +275,23 @@ export default async function handler(req, res) {
     }
   }
 
-  // ✅ GASへ記録（失敗しても診断結果は返す）
+  // ✅ GASへ送る（列ズレしない形：キー固定）
   await postToGAS({
     category,
+    platform,
+    roles,
     text,
     overall: diagnosis.overall,
     grade: diagnosis.grade,
     axes: diagnosis.axes,
     advice: diagnosis.advice,
-    summary: diagnosis.summary,
     advice_detail: diagnosis.advice_detail,
-    imageUrls: imageUrls.join('\n'),       // ←シートに入れたいURL
-    cloudinaryError,                       // ←失敗理由をシートに残せる（列があれば）
-    claudeRaw: claudeRaw.slice(0, 2000),   // ←必要なら（列があれば）
+    summary: diagnosis.summary,
+    imageUrls, // ←配列のままでOK（GAS側で \n 連結して「画像URL」列へ）
+    cloudinaryError,
   });
 
-  // ✅ フロントへ返す（見た目はindex.html側で自由に整形できる）
+  // ✅ フロントへ返す（UIの見た目は自由に整形できる）
   return res.status(200).json({
     ok: true,
     result: diagnosis,
