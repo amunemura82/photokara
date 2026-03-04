@@ -1,5 +1,13 @@
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbx0aMZq54sK-iA8YHvs_3ERiGQXtz80X0NR45NgyFZhYekjzMnjJq1PpPKiQIiq2Jbe/exec';
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '20mb',
+    },
+  },
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -16,13 +24,18 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'API key not configured' });
   }
 
+  // 画像コンテンツのバリデーション
+  const validImages = (imageContents || []).filter(img => 
+    img && img.source && img.source.data && img.source.data.length > 0
+  );
+
   const contentBlocks = [
-    ...(imageContents || []),
+    ...validImages,
     { type: 'text', text: prompt }
   ];
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -30,7 +43,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-opus-4-5',
         max_tokens: 1500,
         messages: [
           { role: 'user', content: contentBlocks }
@@ -38,12 +51,17 @@ export default async function handler(req, res) {
       })
     });
 
-    if (!response.ok) {
-      const err = await response.text();
-      return res.status(500).json({ error: err });
+    // Anthropicのエラー詳細をログに出力
+    if (!anthropicRes.ok) {
+      const errText = await anthropicRes.text();
+      console.error('Anthropic API error:', anthropicRes.status, errText);
+      return res.status(500).json({ 
+        error: `Anthropic API error: ${anthropicRes.status}`,
+        detail: errText
+      });
     }
 
-    const data = await response.json();
+    const data = await anthropicRes.json();
     const rawText = data.content
       .filter(b => b.type === 'text')
       .map(b => b.text)
@@ -51,6 +69,7 @@ export default async function handler(req, res) {
 
     const match = rawText.match(/\{[\s\S]*\}/);
     if (!match) {
+      console.error('No JSON found in response:', rawText);
       return res.status(500).json({ error: 'Invalid response format', raw: rawText });
     }
 
@@ -78,6 +97,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ result: match[0] });
 
   } catch (err) {
+    console.error('Handler error:', err.message);
     return res.status(500).json({ error: err.message });
   }
 }
