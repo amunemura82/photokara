@@ -1465,7 +1465,13 @@ adviceは必ず以下の条件で書いてください：
       if (!response.ok) throw new Error('API error');
 
       const data = await response.json();
-      const parsed = JSON.parse(data.result);
+
+      // エラーチェック
+      if (!data.ok) {
+        throw new Error(data.error || '診断に失敗しました');
+      }
+
+      const parsed = data.result;
       window._lastImageUrls = data.imageUrls || [];
       renderResult(parsed);
 
