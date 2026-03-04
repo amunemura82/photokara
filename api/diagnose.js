@@ -17,13 +17,37 @@ function extractJsonCandidate(rawText) {
   return rawText.slice(first, last + 1).trim();
 }
 
-// JSON.parseを安全に
+// 壊れたJSONを修復して安全にパース
 function safeJsonParse(jsonStr) {
   if (!jsonStr) return { ok: false, error: 'No JSON string' };
+
+  // 1) そのままパース
   try {
     return { ok: true, value: JSON.parse(jsonStr) };
-  } catch (e) {
-    return { ok: false, error: e?.message || 'JSON parse error' };
+  } catch (e1) {
+    // 2) 制御文字・不正な改行を除去して再試行
+    try {
+      const cleaned = jsonStr
+        .replace(/[\x00-\x1F\x7F]/g, (c) => {
+          // 許可する制御文字（タブ・改行・CR）はエスケープに変換
+          if (c === '\t') return '\\t';
+          if (c === '\n') return '\\n';
+          if (c === '\r') return '\\r';
+          return ''; // その他は削除
+        });
+      return { ok: true, value: JSON.parse(cleaned) };
+    } catch (e2) {
+      // 3) 最終手段：正規表現でJSONを再構築
+      try {
+        // 文字列値内の生の改行を\nに変換
+        const fixed = jsonStr.replace(/"((?:[^"\\]|\\.)*)"/g, (match) => {
+          return match.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+        });
+        return { ok: true, value: JSON.parse(fixed) };
+      } catch (e3) {
+        return { ok: false, error: e1?.message || 'JSON parse error' };
+      }
+    }
   }
 }
 
