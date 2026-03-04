@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>photokara｜商業写真 EC訴求力診断</title>
+<meta name="description" content="商品写真の「売れる力」をAIが診断。EC事業者・製造業向けの商業写真品質診断プラットフォーム。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;800&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a18;
+    --paper: #f5f3ef;
+    --paper-2: #eceae4;
+    --accent: #b5916a;
+    --accent-light: #e8d9c8;
+    --rule: #d4cfc6;
+    --muted: #7a756c;
+    --white: #fdfcfa;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Shippori Mincho', serif;
+    font-size: 16px;
+    line-height: 1.8;
+    overflow-x: hidden;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 48px;
+    background: rgba(245,243,239,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .logo {
+    font-family: 'DM Mono', monospace;
+    font-weight: 300;
+    font-size: 1.3rem;
+    letter-spacing: 0.12em;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .logo span { color: var(--accent); }
+
+  nav ul {
+    list-style: none;
+    display: flex; gap: 36px;
+  }
+  nav a {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  nav a:hover { color: var(--ink); }
+
+  .nav-cta {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    background: var(--ink);
+    color: var(--paper) !important;
+    padding: 10px 20px;
+    border-radius: 2px;
+    transition: background 0.2s !important;
+  }
+  .nav-cta:hover { background: var(--accent) !important; color: var(--white) !important; }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; align-items: center;
+    padding: 120px 48px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: 'photokara';
+    position: absolute;
+    right: -2vw; top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    font-family: 'DM Mono', monospace;
+    font-size: clamp(80px, 12vw, 160px);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--rule);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .hero-inner { max-width: 760px; }
+
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    margin-bottom: 32px;
+    display: flex; align-items: center; gap: 12px;
+    opacity: 0; animation: fadeUp 0.8s 0.1s forwards;
+  }
+  .hero-eyebrow::before {
+    content: '';
+    display: block; width: 40px; height: 1px;
+    background: var(--accent);
+  }
+
+  .hero h1 {
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin-bottom: 32px;
+    opacity: 0; animation: fadeUp 0.8s 0.25s forwards;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+    position: relative;
+  }
+  .hero h1 em::after {
+    content: '';
+    position: absolute; left: 0; bottom: 2px; right: 0;
+    height: 3px; background: var(--accent-light);
+    z-index: -1;
+  }
+
+  .hero-sub {
+    font-size: 1.05rem;
+    color: var(--muted);
+    max-width: 540px;
+    margin-bottom: 48px;
+    line-height: 2;
+    opacity: 0; animation: fadeUp 0.8s 0.4s forwards;
+  }
+
+  .hero-actions {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    opacity: 0; animation: fadeUp 0.8s 0.55s forwards;
+  }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 16px 32px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    border-radius: 2px;
+    transition: all 0.25s;
+    border: none; cursor: pointer;
+  }
+  .btn-primary:hover { background: var(--accent); transform: translateY(-2px); }
+  .btn-primary svg { transition: transform 0.2s; }
+  .btn-primary:hover svg { transform: translateX(4px); }
+
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: transparent;
+    color: var(--ink);
+    padding: 16px 32px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    border-radius: 2px;
+    border: 1px solid var(--rule);
+    transition: all 0.25s;
+  }
+  .btn-secondary:hover { border-color: var(--ink); background: var(--paper-2); }
+
+  /* SCROLL INDICATOR */
+  .scroll-hint {
+    position: absolute; bottom: 40px; left: 48px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 12px;
+    opacity: 0; animation: fadeUp 1s 1s forwards;
+  }
+  .scroll-line {
+    width: 48px; height: 1px; background: var(--muted);
+    position: relative; overflow: hidden;
+  }
+  .scroll-line::after {
+    content: '';
+    position: absolute; top: 0; left: -100%;
+    width: 100%; height: 100%; background: var(--accent);
+    animation: scrollLine 2s 1.5s infinite;
+  }
+
+  /* WHY SECTION */
+  .section {
+    padding: 100px 48px;
+  }
+  .section-inner { max-width: 1100px; margin: 0 auto; }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-label::before {
+    content: '';
+    display: block; width: 28px; height: 1px; background: var(--accent);
+  }
+
+  .section h2 {
+    font-size: clamp(1.8rem, 3vw, 2.8rem);
+    font-weight: 800;
+    line-height: 1.3;
+    margin-bottom: 60px;
+    max-width: 700px;
+  }
+
+  /* PROBLEM GRID */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin-bottom: 80px;
+  }
+
+  .problem-card {
+    background: var(--white);
+    padding: 40px 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .problem-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px; background: var(--accent-light);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.4s ease;
+  }
+  .problem-card:hover::before { transform: scaleX(1); }
+
+  .problem-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+  .problem-card h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .problem-card p {
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.9;
+  }
+
+  /* HOW IT WORKS */
+  .bg-paper2 { background: var(--paper-2); }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 48px;
+    margin-top: 60px;
+    counter-reset: step;
+  }
+
+  .step {
+    position: relative;
+    padding-top: 60px;
+  }
+  .step::before {
+    counter-increment: step;
+    content: '0' counter(step);
+    position: absolute; top: 0; left: 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 2.5rem;
+    font-weight: 300;
+    color: var(--accent-light);
+    line-height: 1;
+  }
+  .step h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .step p {
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.9;
+  }
+
+  /* SCORE PREVIEW */
+  .score-demo {
+    background: var(--white);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 40px;
+    margin-top: 60px;
+  }
+
+  .score-demo-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    margin-bottom: 32px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .score-demo-title::before {
+    content: '';
+    display: block; width: 8px; height: 8px;
+    border-radius: 50%; background: #4caf50;
+    animation: pulse 2s infinite;
+  }
+
+  .score-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 24px;
+  }
+
+  .score-item { }
+  .score-item-label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+  }
+  .score-item-bar {
+    height: 4px;
+    background: var(--rule);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .score-item-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    width: 0;
+    transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .score-item-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--ink);
+  }
+
+  /* TOOL SECTION - iFrame wrapper */
+  .tool-section {
+    padding: 100px 0;
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .tool-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 48px;
+  }
+
+  .tool-inner .section-label { color: var(--accent); }
+  .tool-inner .section-label::before { background: var(--accent); }
+  .tool-inner h2 { color: var(--paper); }
+
+  .iframe-wrapper {
+    margin-top: 48px;
+    background: var(--paper);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .iframe-bar {
+    background: #2a2a28;
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .iframe-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+  }
+  .iframe-dot:nth-child(1) { background: #ff5f57; }
+  .iframe-dot:nth-child(2) { background: #ffbd2e; }
+  .iframe-dot:nth-child(3) { background: #28ca41; }
+  .iframe-url {
+    margin-left: 16px;
+    background: #1a1a18;
+    border-radius: 4px;
+    padding: 4px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: #888;
+    flex: 1;
+  }
+
+  .iframe-wrapper iframe {
+    width: 100%;
+    height: 800px;
+    border: none;
+    display: block;
+  }
+
+  /* CONTACT */
+  .contact-section {
+    padding: 100px 48px;
+    background: var(--white);
+  }
+  .contact-inner {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .contact-inner h2 {
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    font-weight: 800;
+    margin-bottom: 16px;
+  }
+  .contact-inner p {
+    color: var(--muted);
+    margin-bottom: 48px;
+    font-size: 0.95rem;
+    line-height: 2;
+  }
+
+  .form-group {
+    margin-bottom: 24px;
+  }
+  .form-group label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 14px 16px;
+    font-family: 'Shippori Mincho', serif;
+    font-size: 0.95rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    border-color: var(--accent);
+  }
+  .form-group textarea { resize: vertical; min-height: 120px; }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .form-submit {
+    width: 100%;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 18px 32px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.12em;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.25s;
+    margin-top: 8px;
+  }
+  .form-submit:hover { background: var(--accent); transform: translateY(-2px); }
+
+  .form-note {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 16px;
+    letter-spacing: 0.05em;
+  }
+
+  /* FOOTER */
+  footer {
+    background: var(--ink);
+    color: var(--muted);
+    padding: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+  footer .logo { color: var(--paper); opacity: 0.6; }
+  footer p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scrollLine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    nav { padding: 16px 24px; }
+    nav ul { display: none; }
+
+    .hero { padding: 100px 24px 60px; }
+    .hero::before { display: none; }
+
+    .section { padding: 64px 24px; }
+
+    .form-row { grid-template-columns: 1fr; }
+
+    .tool-inner { padding: 0 24px; }
+    .iframe-wrapper iframe { height: 600px; }
+
+    .contact-section { padding: 64px 24px; }
+    footer { padding: 32px 24px; flex-direction: column; align-items: flex-start; }
+  }
+
+  /* REVEAL ON SCROLL */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="logo">photo<span>kara</span></a>
+  <ul>
+    <li><a href="#why">課題</a></li>
+    <li><a href="#how">使い方</a></li>
+    <li><a href="#tool">診断ツール</a></li>
+    <li><a href="#contact" class="nav-cta">お問い合わせ</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <p class="hero-eyebrow">COMMERCIAL PHOTO INTELLIGENCE</p>
+    <h1>
+      あなたの商品写真は、<br>
+      <em>何点</em>ですか？
+    </h1>
+    <p class="hero-sub">
+      日本のものづくりには世界に誇る品質がある。<br>
+      しかし写真が伝えていなければ、それは存在しないも同じです。<br>
+      photokaraは、商業写真の「EC訴求力」をAIで可視化します。
+    </p>
+    <div class="hero-actions">
+      <a href="#tool" class="btn-primary">
+        無料で写真を診断する
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+      <a href="#why" class="btn-secondary">サービスについて</a>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    SCROLL
+  </div>
+</section>
+
+<!-- WHY -->
+<section class="section" id="why">
+  <div class="section-inner">
+    <p class="section-label reveal">PROBLEM</p>
+    <h2 class="reveal">
+      写真の価値は知られていない。<br>だから、売れないまま終わる。
+    </h2>
+
+    <div class="problem-grid reveal">
+      <div class="problem-card">
+        <p class="problem-num">01</p>
+        <h3>ECサイトの写真が<br>5年前のまま</h3>
+        <p>商品は改善されているのに、写真は更新されない。古い写真が購買機会を逃し続けています。</p>
+      </div>
+      <div class="problem-card">
+        <p class="problem-num">02</p>
+        <h3>「なんとなく」で<br>発注している</h3>
+        <p>写真の品質を評価する基準がなく、高額な費用を払っても成果が見えない。良し悪しの言語化ができていません。</p>
+      </div>
+      <div class="problem-card">
+        <p class="problem-num">03</p>
+        <h3>フォトグラファーへの<br>心理的ハードル</h3>
+        <p>「アーティストに頼むもの」という誤解が根強い。本来、商業写真は販促投資です。</p>
+      </div>
+      <div class="problem-card">
+        <p class="problem-num">04</p>
+        <h3>社内で品質基準が<br>共有されていない</h3>
+        <p>担当者が変わると写真のトンマナが崩れる。属人的な判断では一貫した訴求ができません。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section bg-paper2" id="how">
+  <div class="section-inner">
+    <p class="section-label reveal">HOW IT WORKS</p>
+    <h2 class="reveal">写真をアップして、<br>テキストを入れるだけ。</h2>
+
+    <div class="steps reveal">
+      <div class="step">
+        <h3>商品写真をアップロード</h3>
+        <p>最大8枚まで対応。複数枚をまとめて診断し、写真ごとにランキングを表示します。</p>
+      </div>
+      <div class="step">
+        <h3>訴求テキストを入力</h3>
+        <p>商品説明・キャプションを入力。EC特化7軸（ブランド・商品・シーン・ベネフィット等）で採点します。</p>
+      </div>
+      <div class="step">
+        <h3>AIが多角的に診断</h3>
+        <p>明るさ・コントラスト・シャープさ・雰囲気スコアを自動計算。S/A/B/Cのグレードで判定します。</p>
+      </div>
+      <div class="step">
+        <h3>改善アドバイスを確認</h3>
+        <p>点数だけでなく「なぜ・どう直すか」を具体的に提示。次の撮影の指針になります。</p>
+      </div>
+    </div>
+
+    <!-- スコアデモ -->
+    <div class="score-demo reveal" id="scoreDemo">
+      <div class="score-demo-title">
+        SAMPLE REPORT — 鉄フライパン 24cm（燕産業）
+      </div>
+      <div class="score-grid">
+        <div class="score-item">
+          <div class="score-item-label">明るさ</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="88"></div></div>
+          <div class="score-item-val">88 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">コントラスト</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="74"></div></div>
+          <div class="score-item-val">74 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">シャープさ</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="91"></div></div>
+          <div class="score-item-val">91 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">高級感</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="82"></div></div>
+          <div class="score-item-val">82 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">質感・素材感</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="95"></div></div>
+          <div class="score-item-val">95 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">テキスト訴求力</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="67"></div></div>
+          <div class="score-item-val">67 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">総合スコア</div>
+          <div class="score-item-bar">
+            <div class="score-item-fill" data-val="84" style="background: var(--ink);"></div>
+          </div>
+          <div class="score-item-val" style="font-weight:600;">84 / 100 [A 良好]</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOOL -->
+<section class="tool-section" id="tool">
+  <div class="tool-inner">
+    <p class="section-label">DIAGNOSIS TOOL</p>
+    <h2 style="color: var(--paper); font-size: clamp(1.8rem,3vw,2.8rem); font-weight:800; line-height:1.3; margin-bottom:16px;">
+      今すぐ診断する
+    </h2>
+    <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 0;">
+      β版・無料・登録不要。写真と訴求テキストをアップしてください。
+    </p>
+
+    <div class="iframe-wrapper">
+      <div class="iframe-bar">
+        <div class="iframe-dot"></div>
+        <div class="iframe-dot"></div>
+        <div class="iframe-dot"></div>
+        <div class="iframe-url">photokara — 商業写真EC訴求力診断</div>
+      </div>
+      <iframe
+        src="https://atom-photo-photokara.hf.space"
+        title="photokara 診断ツール"
+        allow="camera"
+        loading="lazy"
+      ></iframe>
+    </div>
+
+    <p style="color:#555; font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.08em; margin-top:16px; text-align:center;">
+      ※ β版につき社名・個人情報・機密情報が含まれる画像はアップロードしないでください
+    </p>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact-section" id="contact">
+  <div class="contact-inner">
+    <p class="section-label reveal">CONTACT</p>
+    <h2 class="reveal">お問い合わせ</h2>
+    <p class="reveal">
+      βテストへの参加・導入のご相談・撮影のご依頼など、お気軽にご連絡ください。
+      新越ワークス・燕三条エリアのメーカー様は特に歓迎いたします。
+    </p>
+
+    <form class="reveal" onsubmit="handleSubmit(event)" id="contact-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>会社名</label>
+          <input type="text" name="company" placeholder="株式会社〇〇" required>
+        </div>
+        <div class="form-group">
+          <label>お名前</label>
+          <input type="text" name="name" placeholder="山田 太郎" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>メールアドレス</label>
+        <input type="email" name="email" placeholder="info@example.com" required>
+      </div>
+      <div class="form-group">
+        <label>お問い合わせ種別</label>
+        <select name="type">
+          <option>βテストへの参加希望</option>
+          <option>写真診断サービスの導入相談</option>
+          <option>商業写真撮影のご依頼</option>
+          <option>その他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>メッセージ</label>
+        <textarea name="message" placeholder="ご質問・ご要望をご記入ください"></textarea>
+      </div>
+      <button type="submit" class="form-submit">送信する →</button>
+      <p class="form-note">通常2営業日以内にご返信いたします</p>
+    </form>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <a href="#" class="logo">photo<span>kara</span></a>
+  <p>© 2025 photokara. Powered by AI × Professional Photography.</p>
+</footer>
+
+<script>
+  // Reveal on scroll
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => observer.observe(el));
+
+  // Score bar animation
+  const scoreObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.querySelectorAll('.score-item-fill').forEach(fill => {
+          const val = fill.dataset.val;
+          setTimeout(() => { fill.style.width = val + '%'; }, 200);
+        });
+        scoreObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.3 });
+  const scoreDemo = document.getElementById('scoreDemo');
+  if (scoreDemo) scoreObserver.observe(scoreDemo);
+
+  // Form submit → Formspree
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const btn = form.querySelector('.form-submit');
+    btn.textContent = '送信中...';
+    btn.disabled = true;
+
+    const data = new FormData(form);
+
+    try {
+      const res = await fetch('https://formspree.io/f/mreanqbo', {
+        method: 'POST',
+        body: data,
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (res.ok) {
+        btn.textContent = '送信しました ✓';
+        btn.style.background = '#4caf50';
+        form.reset();
+      } else {
+        btn.textContent = '送信に失敗しました。再度お試しください。';
+        btn.style.background = '#e53935';
+        btn.disabled = false;
+      }
+    } catch (err) {
+      btn.textContent = '通信エラー。再度お試しください。';
+      btn.style.background = '#e53935';
+      btn.disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>
