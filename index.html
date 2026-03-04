@@ -1181,7 +1181,6 @@
   }
 
   function renderPreviews() {
-    // 役割選択UIを更新
     const roleArea = document.getElementById('roleAssignArea');
     const roleCards = document.getElementById('roleCards');
     roleCards.innerHTML = '';
@@ -1195,12 +1194,36 @@
     selectedFiles.forEach((file, i) => {
       const url = URL.createObjectURL(file);
       const card = document.createElement('div');
-      card.style.cssText = 'display:flex; align-items:center; gap:16px; background:#1a1a18; border:1px solid #333; border-radius:4px; padding:12px 16px;';
+      card.style.cssText = 'display:flex; align-items:center; gap:16px; background:#1a1a18; border:1px solid #333; border-radius:4px; padding:12px 16px; position:relative;';
 
+      // サムネイル
       const img = document.createElement('img');
       img.src = url;
       img.style.cssText = 'width:64px; height:64px; object-fit:cover; border-radius:3px; flex-shrink:0;';
 
+      // 削除ボタン
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '×';
+      delBtn.title = 'この写真を削除';
+      delBtn.style.cssText = [
+        'position:absolute', 'top:8px', 'right:8px',
+        'width:22px', 'height:22px',
+        'background:#333', 'color:#aaa',
+        'border:none', 'border-radius:50%',
+        'font-size:0.85rem', 'line-height:1',
+        'cursor:pointer', 'display:flex',
+        'align-items:center', 'justify-content:center',
+        'transition:background 0.2s, color 0.2s',
+        'padding:0'
+      ].join(';');
+      delBtn.onmouseover = () => { delBtn.style.background = '#e53935'; delBtn.style.color = '#fff'; };
+      delBtn.onmouseout  = () => { delBtn.style.background = '#333';    delBtn.style.color = '#aaa'; };
+      delBtn.onclick = () => {
+        selectedFiles.splice(i, 1);
+        renderPreviews();
+      };
+
+      // ラベル＋役割セレクト
       const label = document.createElement('div');
       label.style.cssText = 'font-family:DM Mono,monospace; font-size:0.65rem; letter-spacing:0.08em; color:#888; margin-bottom:8px;';
       label.textContent = `画像 #${i+1}`;
@@ -1221,12 +1244,13 @@
       });
 
       const info = document.createElement('div');
-      info.style.cssText = 'flex:1;';
+      info.style.cssText = 'flex:1; padding-right:24px;';
       info.appendChild(label);
       info.appendChild(select);
 
       card.appendChild(img);
       card.appendChild(info);
+      card.appendChild(delBtn);
       roleCards.appendChild(card);
     });
   }
