@@ -1426,22 +1426,26 @@ adviceは必ず以下の条件で書いてください：
 {
   "overall": 数値,
   "grade": "S/A/B/C",
-  "summary": "総合評価を3〜4文で。写真の良い点と改善点を具体的に述べる",
+  "summary": "総合評価を50文字以内で",
   "axes": [
-    {"name": "明るさ", "score": 数値, "comment": "具体的な理由を含む2文のコメント"},
-    {"name": "コントラスト", "score": 数値, "comment": "具体的な理由を含む2文のコメント"},
-    {"name": "シャープさ", "score": 数値, "comment": "具体的な理由を含む2文のコメント"},
-    {"name": "高級感", "score": 数値, "comment": "具体的な理由を含む2文のコメント"},
-    {"name": "清潔感", "score": 数値, "comment": "具体的な理由を含む2文のコメント"},
-    {"name": "質感・素材感", "score": 数値, "comment": "具体的な理由を含む2文のコメント"},
-    {"name": "テキスト訴求力", "score": 数値, "comment": "具体的な理由を含む2文のコメント"},
-    {"name": "解像度・画質", "score": ${avgResScore}, "comment": "元画像の解像度に基づくコメント。高解像度は素材として優秀である旨を伝える"}
+    {"name": "明るさ", "score": 数値, "comment": "20文字以内の一言"},
+    {"name": "コントラスト", "score": 数値, "comment": "20文字以内の一言"},
+    {"name": "シャープさ", "score": 数値, "comment": "20文字以内の一言"},
+    {"name": "高級感", "score": 数値, "comment": "20文字以内の一言"},
+    {"name": "清潔感", "score": 数値, "comment": "20文字以内の一言"},
+    {"name": "質感・素材感", "score": 数値, "comment": "20文字以内の一言"},
+    {"name": "テキスト訴求力", "score": 数値, "comment": "20文字以内の一言"},
+    {"name": "解像度・画質", "score": ${avgResScore}, "comment": "20文字以内の一言"}
   ],
   "advice": [
-    "【ライティング】問題点の説明。なぜ問題かの理由。具体的な改善方法（例：白いレフ板を商品の左45度に置くなど）。",
-    "【構図・サイズ感】問題点の説明。なぜ問題かの理由。具体的な改善方法。",
-    "【背景・環境】問題点の説明。なぜ問題かの理由。具体的な改善方法。",
-    "【訴求テキスト】問題点の説明。なぜ問題かの理由。具体的な改善方法（例：価格・サイズの数値を追加するなど）。"
+    "【ライティング】改善方法を30文字以内で",
+    "【構図・背景】改善方法を30文字以内で",
+    "【訴求テキスト】改善方法を30文字以内で"
+  ],
+  "advice_detail": [
+    "ライティングの詳細アドバイスを100文字以内で。改行なし。",
+    "構図・背景の詳細アドバイスを100文字以内で。改行なし。",
+    "訴求テキストの詳細アドバイスを100文字以内で。改行なし。"
   ]
 }`;
 
@@ -1501,7 +1505,11 @@ adviceは必ず以下の条件で書いてください：
       </div>
     `).join('');
 
-    let adviceHTML = data.advice.map(a => `<li>${a}</li>`).join('');
+    const adviceDetails = data.advice_detail || [];
+    let adviceHTML = (data.advice || []).map((a, i) => {
+      const detail = adviceDetails[i] ? `<span style="display:block; font-size:0.82rem; color:#aaa; margin-top:6px; line-height:1.75;">${adviceDetails[i]}</span>` : '';
+      return `<li>${a}${detail}</li>`;
+    }).join('');
 
     result.innerHTML = `
       <div class="diag-overall">
