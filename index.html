@@ -628,6 +628,42 @@
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* フィードバック */
+  .diag-feedback {
+    margin-top: 24px;
+    background: #1a1a18;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 24px;
+  }
+  .diag-feedback-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: #666;
+    margin-bottom: 14px;
+  }
+  .diag-feedback-btns {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .feedback-btn {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 0.88rem;
+    padding: 10px 24px;
+    border-radius: 3px;
+    border: 1px solid #444;
+    background: transparent;
+    color: #ccc;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .feedback-btn:hover { border-color: #4caf50; color: #4caf50; }
+  .feedback-btn-bad:hover { border-color: #f44336 !important; color: #f44336 !important; }
+  .feedback-btn.selected-good { border-color: #4caf50; color: #4caf50; background: #1a2e1a; }
+  .feedback-btn.selected-bad { border-color: #f44336; color: #f44336; background: #2e1a1a; }
+
   /* CONTACT */
   .contact-section {
     padding: 100px 48px;
@@ -1417,7 +1453,12 @@ adviceは必ず以下の条件で書いてください：
           prompt,
           imageContents,
           category: selectedCategory,
-          text: document.getElementById('diagText').value.trim()
+          platform: selectedPlatform,
+          text: document.getElementById('diagText').value.trim(),
+          roles: selectedFiles.map((f, i) => {
+            const sel = document.getElementById(`role_${i}`);
+            return sel ? sel.value : 'その他';
+          })
         })
       });
 
@@ -1425,6 +1466,7 @@ adviceは必ず以下の条件で書いてください：
 
       const data = await response.json();
       const parsed = JSON.parse(data.result);
+      window._lastImageUrls = data.imageUrls || [];
       renderResult(parsed);
 
     } catch (err) {
@@ -1466,9 +1508,67 @@ adviceは必ず以下の条件で書いてください：
         <h4>IMPROVEMENT ADVICE</h4>
         <ul>${adviceHTML}</ul>
       </div>
+      <div class="diag-feedback" id="feedbackArea">
+        <p class="diag-feedback-label">この診断結果はどうでしたか？</p>
+        <div class="diag-feedback-btns">
+          <button class="feedback-btn" onclick="sendFeedback('good')">👍 的確だった</button>
+          <button class="feedback-btn feedback-btn-bad" onclick="sendFeedback('bad')">👎 ズレていた</button>
+        </div>
+        <div id="feedbackComment" style="display:none; margin-top:16px;">
+          <textarea id="feedbackText" class="diag-textarea" style="min-height:80px;" placeholder="どこがズレていましたか？（例：高級感のスコアが低すぎる、アドバイスが的外れ など）"></textarea>
+          <button class="diag-submit" style="margin-top:10px; padding:12px 24px; font-size:0.78rem;" onclick="submitFeedbackComment()">コメントを送る</button>
+        </div>
+        <div id="feedbackDone" style="display:none; font-family:'DM Mono',monospace; font-size:0.72rem; color:#888; letter-spacing:0.08em; margin-top:12px;">
+          ありがとうございます。フィードバックを記録しました。
+        </div>
+      </div>
     `;
     result.classList.add('visible');
     result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // -----------------------------------------------
+  // フィードバック送信
+  // -----------------------------------------------
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbx0aMZq54sK-iA8YHvs_3ERiGQXtz80X0NR45NgyFZhYekjzMnjJq1PpPKiQIiq2Jbe/exec';
+
+  function sendFeedback(type) {
+    // ボタンの状態を更新
+    document.querySelectorAll('.feedback-btn').forEach(b => {
+      b.classList.remove('selected-good', 'selected-bad');
+    });
+    if (type === 'good') {
+      document.querySelector('.feedback-btn:not(.feedback-btn-bad)').classList.add('selected-good');
+      document.getElementById('feedbackComment').style.display = 'none';
+      submitFeedbackToGAS(type, '');
+    } else {
+      document.querySelector('.feedback-btn-bad').classList.add('selected-bad');
+      document.getElementById('feedbackComment').style.display = 'block';
+    }
+  }
+
+  function submitFeedbackComment() {
+    const comment = document.getElementById('feedbackText').value.trim();
+    submitFeedbackToGAS('bad', comment);
+  }
+
+  async function submitFeedbackToGAS(type, comment) {
+    try {
+      await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feedbackOnly: true,
+          feedback: type === 'good' ? '👍 的確だった' : '👎 ズレていた',
+          feedbackComment: comment,
+          imageUrls: (window._lastImageUrls || []).join('\n')
+        })
+      });
+      document.getElementById('feedbackComment').style.display = 'none';
+      document.getElementById('feedbackDone').style.display = 'block';
+    } catch(e) {
+      console.error('Feedback failed:', e);
+    }
   }
 
   // -----------------------------------------------
