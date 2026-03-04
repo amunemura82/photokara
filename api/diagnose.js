@@ -1,7 +1,7 @@
 // pages/api/diagnose.js
 
 const GAS_URL =
-  'https://script.google.com/macros/s/AKfycbx0aMZq54sK-iA8YHvs_3ERiGQXtz80X0NR45NgyFZhYekjzMnjJq1PpPKiQIiq2Jbe/exec';
+  'https://script.google.com/macros/s/AKfycbwbu63S9aG6DwiUeVHisUbkuusrjLDL16Mwticr1jHGeijmlqrYiPM3xXWne_NdlU6C/exec';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '20mb' } },
