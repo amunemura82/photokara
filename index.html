@@ -1,62 +1,1302 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>photokara｜商業写真 EC訴求力診断</title>
+<meta name="description" content="商品写真の「売れる力」をAIが診断。EC事業者・製造業向けの商業写真品質診断プラットフォーム。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;800&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a18;
+    --paper: #f5f3ef;
+    --paper-2: #eceae4;
+    --accent: #b5916a;
+    --accent-light: #e8d9c8;
+    --rule: #d4cfc6;
+    --muted: #7a756c;
+    --white: #fdfcfa;
   }
 
-  const { prompt, imageContents } = req.body;
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  if (!prompt) {
-    return res.status(400).json({ error: 'prompt is required' });
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Shippori Mincho', serif;
+    font-size: 16px;
+    line-height: 1.8;
+    overflow-x: hidden;
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured' });
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 48px;
+    background: rgba(245,243,239,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--rule);
   }
 
-  // メッセージ構築（画像＋テキスト）
-  const contentBlocks = [
-    ...(imageContents || []),
-    { type: 'text', text: prompt }
-  ];
+  .logo {
+    font-family: 'DM Mono', monospace;
+    font-weight: 300;
+    font-size: 1.3rem;
+    letter-spacing: 0.12em;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .logo span { color: var(--accent); }
 
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [
-          { role: 'user', content: contentBlocks }
-        ]
-      })
+  nav ul {
+    list-style: none;
+    display: flex; gap: 36px;
+  }
+  nav a {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  nav a:hover { color: var(--ink); }
+
+  .nav-cta {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    background: var(--ink);
+    color: var(--paper) !important;
+    padding: 10px 20px;
+    border-radius: 2px;
+    transition: background 0.2s !important;
+  }
+  .nav-cta:hover { background: var(--accent) !important; color: var(--white) !important; }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; align-items: center;
+    padding: 120px 48px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: 'photokara';
+    position: absolute;
+    right: -2vw; top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    font-family: 'DM Mono', monospace;
+    font-size: clamp(80px, 12vw, 160px);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--rule);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .hero-inner { max-width: 760px; }
+
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    margin-bottom: 32px;
+    display: flex; align-items: center; gap: 12px;
+    opacity: 0; animation: fadeUp 0.8s 0.1s forwards;
+  }
+  .hero-eyebrow::before {
+    content: '';
+    display: block; width: 40px; height: 1px;
+    background: var(--accent);
+  }
+
+  .hero h1 {
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin-bottom: 32px;
+    opacity: 0; animation: fadeUp 0.8s 0.25s forwards;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+    position: relative;
+  }
+  .hero h1 em::after {
+    content: '';
+    position: absolute; left: 0; bottom: 2px; right: 0;
+    height: 3px; background: var(--accent-light);
+    z-index: -1;
+  }
+
+  .hero-sub {
+    font-size: 1.05rem;
+    color: var(--muted);
+    max-width: 540px;
+    margin-bottom: 48px;
+    line-height: 2;
+    opacity: 0; animation: fadeUp 0.8s 0.4s forwards;
+  }
+
+  .hero-actions {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    opacity: 0; animation: fadeUp 0.8s 0.55s forwards;
+  }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 16px 32px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    border-radius: 2px;
+    transition: all 0.25s;
+    border: none; cursor: pointer;
+  }
+  .btn-primary:hover { background: var(--accent); transform: translateY(-2px); }
+  .btn-primary svg { transition: transform 0.2s; }
+  .btn-primary:hover svg { transform: translateX(4px); }
+
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: transparent;
+    color: var(--ink);
+    padding: 16px 32px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    border-radius: 2px;
+    border: 1px solid var(--rule);
+    transition: all 0.25s;
+  }
+  .btn-secondary:hover { border-color: var(--ink); background: var(--paper-2); }
+
+  /* SCROLL INDICATOR */
+  .scroll-hint {
+    position: absolute; bottom: 40px; left: 48px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 12px;
+    opacity: 0; animation: fadeUp 1s 1s forwards;
+  }
+  .scroll-line {
+    width: 48px; height: 1px; background: var(--muted);
+    position: relative; overflow: hidden;
+  }
+  .scroll-line::after {
+    content: '';
+    position: absolute; top: 0; left: -100%;
+    width: 100%; height: 100%; background: var(--accent);
+    animation: scrollLine 2s 1.5s infinite;
+  }
+
+  /* WHY SECTION */
+  .section {
+    padding: 100px 48px;
+  }
+  .section-inner { max-width: 1100px; margin: 0 auto; }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-label::before {
+    content: '';
+    display: block; width: 28px; height: 1px; background: var(--accent);
+  }
+
+  .section h2 {
+    font-size: clamp(1.8rem, 3vw, 2.8rem);
+    font-weight: 800;
+    line-height: 1.3;
+    margin-bottom: 60px;
+    max-width: 700px;
+  }
+
+  /* PROBLEM GRID */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin-bottom: 80px;
+  }
+
+  .problem-card {
+    background: var(--white);
+    padding: 40px 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .problem-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px; background: var(--accent-light);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.4s ease;
+  }
+  .problem-card:hover::before { transform: scaleX(1); }
+
+  .problem-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+  .problem-card h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .problem-card p {
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.9;
+  }
+
+  /* HOW IT WORKS */
+  .bg-paper2 { background: var(--paper-2); }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 48px;
+    margin-top: 60px;
+    counter-reset: step;
+  }
+
+  .step {
+    position: relative;
+    padding-top: 60px;
+  }
+  .step::before {
+    counter-increment: step;
+    content: '0' counter(step);
+    position: absolute; top: 0; left: 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 2.5rem;
+    font-weight: 300;
+    color: var(--accent-light);
+    line-height: 1;
+  }
+  .step h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .step p {
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.9;
+  }
+
+  /* SCORE PREVIEW */
+  .score-demo {
+    background: var(--white);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 40px;
+    margin-top: 60px;
+  }
+
+  .score-demo-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    margin-bottom: 32px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .score-demo-title::before {
+    content: '';
+    display: block; width: 8px; height: 8px;
+    border-radius: 50%; background: #4caf50;
+    animation: pulse 2s infinite;
+  }
+
+  .score-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 24px;
+  }
+
+  .score-item { }
+  .score-item-label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+  }
+  .score-item-bar {
+    height: 4px;
+    background: var(--rule);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .score-item-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    width: 0;
+    transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .score-item-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--ink);
+  }
+
+  /* TOOL SECTION */
+  .tool-section {
+    padding: 100px 0;
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .tool-inner {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 48px;
+  }
+
+  .tool-inner .section-label { color: var(--accent); }
+  .tool-inner .section-label::before { background: var(--accent); }
+  .tool-inner h2 { color: var(--paper); }
+
+  /* 診断フォーム */
+  .diag-form {
+    margin-top: 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .diag-dropzone {
+    border: 1.5px dashed #444;
+    border-radius: 6px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    background: #222;
+  }
+  .diag-dropzone:hover, .diag-dropzone.dragover {
+    border-color: var(--accent);
+    background: #2a2520;
+  }
+  .diag-dropzone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .diag-dropzone-icon { font-size: 2rem; margin-bottom: 12px; }
+  .diag-dropzone-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    color: #888;
+  }
+  .diag-dropzone-label strong { color: var(--accent); }
+
+  .diag-preview {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-top: 16px;
+    min-height: 0;
+  }
+  .diag-preview img {
+    width: 72px; height: 72px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #333;
+  }
+
+  .diag-category {
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .diag-cat-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    padding: 8px 16px;
+    border-radius: 2px;
+    border: 1px solid #444;
+    background: transparent;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .diag-cat-btn.active, .diag-cat-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: #2a2520;
+  }
+
+  .diag-textarea {
+    width: 100%;
+    background: #222;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 16px;
+    font-family: 'Shippori Mincho', serif;
+    font-size: 0.92rem;
+    color: var(--paper);
+    resize: vertical;
+    min-height: 140px;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.8;
+  }
+  .diag-textarea:focus { border-color: var(--accent); }
+  .diag-textarea::placeholder { color: #555; }
+
+  .diag-submit {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 18px 32px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.25s;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .diag-submit:hover:not(:disabled) { background: #c9a07a; transform: translateY(-2px); }
+  .diag-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* 結果 */
+  .diag-result {
+    margin-top: 40px;
+    display: none;
+  }
+  .diag-result.visible { display: block; }
+
+  .diag-result-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 32px;
+  }
+  .diag-result-header h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--paper);
+  }
+
+  .diag-overall {
+    background: #1a1a18;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+  .diag-overall-score {
+    font-family: 'DM Mono', monospace;
+    font-size: 3rem;
+    font-weight: 300;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .diag-overall-grade {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    color: #888;
+    margin-bottom: 20px;
+  }
+  .diag-overall-summary {
+    font-size: 0.95rem;
+    color: #ccc;
+    line-height: 1.9;
+  }
+
+  .diag-axes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .diag-axis-card {
+    background: #1a1a18;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 20px;
+  }
+  .diag-axis-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    color: #666;
+    margin-bottom: 8px;
+  }
+  .diag-axis-score {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--paper);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .diag-axis-score span { font-size: 0.8rem; color: #666; font-weight: 400; }
+  .diag-axis-bar {
+    height: 3px; background: #333; border-radius: 2px; overflow: hidden; margin-bottom: 10px;
+  }
+  .diag-axis-fill {
+    height: 100%; background: var(--accent); border-radius: 2px;
+    transition: width 1s cubic-bezier(0.16,1,0.3,1);
+  }
+  .diag-axis-comment {
+    font-size: 0.78rem;
+    color: #888;
+    line-height: 1.7;
+  }
+
+  .diag-advice {
+    background: #1a1a18;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 4px 4px 0;
+    padding: 24px 28px;
+  }
+  .diag-advice h4 {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .diag-advice ul {
+    list-style: none;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .diag-advice li {
+    font-size: 0.9rem;
+    color: #bbb;
+    line-height: 1.8;
+    padding-left: 16px;
+    position: relative;
+  }
+  .diag-advice li::before {
+    content: '→';
+    position: absolute; left: 0;
+    color: var(--accent);
+  }
+
+  .diag-loading {
+    display: none;
+    text-align: center;
+    padding: 48px;
+  }
+  .diag-loading.visible { display: block; }
+  .diag-spinner {
+    width: 40px; height: 40px;
+    border: 2px solid #333;
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  .diag-loading p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    color: #666;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* CONTACT */
+  .contact-section {
+    padding: 100px 48px;
+    background: var(--white);
+  }
+  .contact-inner {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .contact-inner h2 {
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    font-weight: 800;
+    margin-bottom: 16px;
+  }
+  .contact-inner p {
+    color: var(--muted);
+    margin-bottom: 48px;
+    font-size: 0.95rem;
+    line-height: 2;
+  }
+
+  .form-group {
+    margin-bottom: 24px;
+  }
+  .form-group label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 14px 16px;
+    font-family: 'Shippori Mincho', serif;
+    font-size: 0.95rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    border-color: var(--accent);
+  }
+  .form-group textarea { resize: vertical; min-height: 120px; }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .form-submit {
+    width: 100%;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 18px 32px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.12em;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.25s;
+    margin-top: 8px;
+  }
+  .form-submit:hover { background: var(--accent); transform: translateY(-2px); }
+
+  .form-note {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 16px;
+    letter-spacing: 0.05em;
+  }
+
+  /* FOOTER */
+  footer {
+    background: var(--ink);
+    color: var(--muted);
+    padding: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+  footer .logo { color: var(--paper); opacity: 0.6; }
+  footer p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scrollLine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    nav { padding: 16px 24px; }
+    nav ul { display: none; }
+
+    .hero { padding: 100px 24px 60px; }
+    .hero::before { display: none; }
+
+    .section { padding: 64px 24px; }
+
+    .form-row { grid-template-columns: 1fr; }
+
+    .tool-inner { padding: 0 24px; }
+    .iframe-wrapper iframe { height: 600px; }
+
+    .contact-section { padding: 64px 24px; }
+    footer { padding: 32px 24px; flex-direction: column; align-items: flex-start; }
+  }
+
+  /* REVEAL ON SCROLL */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="logo">photo<span>kara</span></a>
+  <ul>
+    <li><a href="#why">課題</a></li>
+    <li><a href="#how">使い方</a></li>
+    <li><a href="#tool">診断ツール</a></li>
+    <li><a href="#contact" class="nav-cta">お問い合わせ</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <p class="hero-eyebrow">COMMERCIAL PHOTO INTELLIGENCE</p>
+    <h1>
+      あなたの商品写真は、<br>
+      <em>何点</em>ですか？
+    </h1>
+    <p class="hero-sub">
+      日本のものづくりには世界に誇る品質がある。<br>
+      しかし写真が伝えていなければ、それは存在しないも同じです。<br>
+      photokaraは、商業写真の「EC訴求力」をAIで可視化します。
+    </p>
+    <div class="hero-actions">
+      <a href="#tool" class="btn-primary">
+        無料で写真を診断する
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+      <a href="#why" class="btn-secondary">サービスについて</a>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    SCROLL
+  </div>
+</section>
+
+<!-- WHY -->
+<section class="section" id="why">
+  <div class="section-inner">
+    <p class="section-label reveal">PROBLEM</p>
+    <h2 class="reveal">
+      写真の価値は知られていない。<br>だから、売れないまま終わる。
+    </h2>
+
+    <div class="problem-grid reveal">
+      <div class="problem-card">
+        <p class="problem-num">01</p>
+        <h3>ECサイトの写真が<br>5年前のまま</h3>
+        <p>商品は改善されているのに、写真は更新されない。古い写真が購買機会を逃し続けています。</p>
+      </div>
+      <div class="problem-card">
+        <p class="problem-num">02</p>
+        <h3>「なんとなく」で<br>発注している</h3>
+        <p>写真の品質を評価する基準がなく、高額な費用を払っても成果が見えない。良し悪しの言語化ができていません。</p>
+      </div>
+      <div class="problem-card">
+        <p class="problem-num">03</p>
+        <h3>フォトグラファーへの<br>心理的ハードル</h3>
+        <p>「アーティストに頼むもの」という誤解が根強い。本来、商業写真は販促投資です。</p>
+      </div>
+      <div class="problem-card">
+        <p class="problem-num">04</p>
+        <h3>社内で品質基準が<br>共有されていない</h3>
+        <p>担当者が変わると写真のトンマナが崩れる。属人的な判断では一貫した訴求ができません。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section bg-paper2" id="how">
+  <div class="section-inner">
+    <p class="section-label reveal">HOW IT WORKS</p>
+    <h2 class="reveal">写真をアップして、<br>テキストを入れるだけ。</h2>
+
+    <div class="steps reveal">
+      <div class="step">
+        <h3>商品写真をアップロード</h3>
+        <p>最大8枚まで対応。複数枚をまとめて診断し、写真ごとにランキングを表示します。</p>
+      </div>
+      <div class="step">
+        <h3>訴求テキストを入力</h3>
+        <p>商品説明・キャプションを入力。EC特化7軸（ブランド・商品・シーン・ベネフィット等）で採点します。</p>
+      </div>
+      <div class="step">
+        <h3>AIが多角的に診断</h3>
+        <p>明るさ・コントラスト・シャープさ・雰囲気スコアを自動計算。S/A/B/Cのグレードで判定します。</p>
+      </div>
+      <div class="step">
+        <h3>改善アドバイスを確認</h3>
+        <p>点数だけでなく「なぜ・どう直すか」を具体的に提示。次の撮影の指針になります。</p>
+      </div>
+    </div>
+
+    <!-- スコアデモ -->
+    <div class="score-demo reveal" id="scoreDemo">
+      <div class="score-demo-title">
+        SAMPLE REPORT — 鉄フライパン 24cm（燕産業）
+      </div>
+      <div class="score-grid">
+        <div class="score-item">
+          <div class="score-item-label">明るさ</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="88"></div></div>
+          <div class="score-item-val">88 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">コントラスト</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="74"></div></div>
+          <div class="score-item-val">74 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">シャープさ</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="91"></div></div>
+          <div class="score-item-val">91 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">高級感</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="82"></div></div>
+          <div class="score-item-val">82 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">質感・素材感</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="95"></div></div>
+          <div class="score-item-val">95 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">テキスト訴求力</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="67"></div></div>
+          <div class="score-item-val">67 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">総合スコア</div>
+          <div class="score-item-bar">
+            <div class="score-item-fill" data-val="84" style="background: var(--ink);"></div>
+          </div>
+          <div class="score-item-val" style="font-weight:600;">84 / 100 [A 良好]</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOOL -->
+<section class="tool-section" id="tool">
+  <div class="tool-inner">
+    <p class="section-label">DIAGNOSIS TOOL</p>
+    <h2 style="color: var(--paper); font-size: clamp(1.8rem,3vw,2.8rem); font-weight:800; line-height:1.3; margin-bottom:8px;">
+      今すぐ診断する
+    </h2>
+    <p style="color: #888; font-size: 0.88rem; margin-bottom: 0; font-family:'DM Mono',monospace; letter-spacing:0.05em;">
+      β版・無料・登録不要 — JPEG / PNG / WebP・1枚5MB以下・最大5枚
+    </p>
+
+    <div class="diag-form">
+
+      <!-- カテゴリ選択 -->
+      <div>
+        <p style="font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.15em; color:#666; margin-bottom:10px;">01 — カテゴリを選択</p>
+        <div class="diag-category" id="categoryBtns">
+          <button class="diag-cat-btn active" data-cat="金属・キッチン用品">金属・キッチン用品</button>
+          <button class="diag-cat-btn" data-cat="食品・菓子・飲料">食品・菓子・飲料</button>
+          <button class="diag-cat-btn" data-cat="アウトドア・スポーツ">アウトドア・スポーツ</button>
+          <button class="diag-cat-btn" data-cat="アパレル・雑貨">アパレル・雑貨</button>
+          <button class="diag-cat-btn" data-cat="コスメ・美容">コスメ・美容</button>
+          <button class="diag-cat-btn" data-cat="その他">その他</button>
+        </div>
+      </div>
+
+      <!-- 画像アップロード -->
+      <div>
+        <p style="font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.15em; color:#666; margin-bottom:10px;">02 — 商品写真をアップロード（最大5枚）</p>
+        <div class="diag-dropzone" id="dropzone">
+          <input type="file" id="imageInput" accept="image/jpeg,image/png,image/webp" multiple>
+          <div class="diag-dropzone-icon">📷</div>
+          <div class="diag-dropzone-label">
+            ここをタップ、またはドラッグ＆ドロップ<br>
+            <strong>JPEG / PNG / WebP・1枚5MB以下</strong>
+          </div>
+          <div class="diag-preview" id="imagePreview"></div>
+        </div>
+      </div>
+
+      <!-- テキスト入力 -->
+      <div>
+        <p style="font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.15em; color:#666; margin-bottom:10px;">03 — 商品の訴求テキストを入力（任意）</p>
+        <textarea
+          class="diag-textarea"
+          id="diagText"
+          placeholder="例：燕三条の職人が手がけた鉄フライパン（24cm・約1.2kg）。無塗装鉄製で熱伝導が高く、プロの厨房でも愛用されています。価格は12,000円。錆びにくい表面処理で家庭でも手入れが簡単です。"
+        ></textarea>
+      </div>
+
+      <button class="diag-submit" id="diagSubmit" onclick="runDiagnosis()">
+        <span>📊 診断する</span>
+      </button>
+    </div>
+
+    <!-- ローディング -->
+    <div class="diag-loading" id="diagLoading">
+      <div class="diag-spinner"></div>
+      <p>AIが写真を分析しています...</p>
+    </div>
+
+    <!-- 結果 -->
+    <div class="diag-result" id="diagResult"></div>
+
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact-section" id="contact">
+  <div class="contact-inner">
+    <p class="section-label reveal">CONTACT</p>
+    <h2 class="reveal">お問い合わせ</h2>
+    <p class="reveal">
+      βテストへの参加・導入のご相談・撮影のご依頼など、お気軽にご連絡ください。
+      新越ワークス・燕三条エリアのメーカー様は特に歓迎いたします。
+    </p>
+
+    <form class="reveal" onsubmit="handleSubmit(event)" id="contact-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>会社名</label>
+          <input type="text" name="company" placeholder="株式会社〇〇" required>
+        </div>
+        <div class="form-group">
+          <label>お名前</label>
+          <input type="text" name="name" placeholder="山田 太郎" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>メールアドレス</label>
+        <input type="email" name="email" placeholder="info@example.com" required>
+      </div>
+      <div class="form-group">
+        <label>お問い合わせ種別</label>
+        <select name="type">
+          <option>βテストへの参加希望</option>
+          <option>写真診断サービスの導入相談</option>
+          <option>商業写真撮影のご依頼</option>
+          <option>その他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>メッセージ</label>
+        <textarea name="message" placeholder="ご質問・ご要望をご記入ください"></textarea>
+      </div>
+      <button type="submit" class="form-submit">送信する →</button>
+      <p class="form-note">通常2営業日以内にご返信いたします</p>
+    </form>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <a href="#" class="logo">photo<span>kara</span></a>
+  <p>© 2025 photokara. Powered by AI × Professional Photography.</p>
+</footer>
+
+<script>
+  // -----------------------------------------------
+  // カテゴリ選択
+  // -----------------------------------------------
+  let selectedCategory = '金属・キッチン用品';
+  document.querySelectorAll('.diag-cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.diag-cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedCategory = btn.dataset.cat;
     });
+  });
 
-    if (!response.ok) {
-      const err = await response.text();
-      return res.status(500).json({ error: err });
-    }
+  // -----------------------------------------------
+  // 画像プレビュー
+  // -----------------------------------------------
+  let selectedFiles = [];
+  const imageInput = document.getElementById('imageInput');
+  const imagePreview = document.getElementById('imagePreview');
+  const dropzone = document.getElementById('dropzone');
 
-    const data = await response.json();
-    const text = data.content
-      .filter(b => b.type === 'text')
-      .map(b => b.text)
-      .join('');
+  imageInput.addEventListener('change', handleFiles);
 
-    // JSON部分だけ抽出
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) {
-      return res.status(500).json({ error: 'Invalid response format', raw: text });
-    }
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    addFiles(files);
+  });
 
-    return res.status(200).json({ result: match[0] });
-
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+  function handleFiles(e) {
+    addFiles(Array.from(e.target.files));
   }
-}
+
+  function addFiles(files) {
+    const remaining = 5 - selectedFiles.length;
+    const toAdd = files.slice(0, remaining);
+    selectedFiles = [...selectedFiles, ...toAdd];
+    renderPreviews();
+  }
+
+  function renderPreviews() {
+    imagePreview.innerHTML = '';
+    selectedFiles.forEach((file, i) => {
+      const url = URL.createObjectURL(file);
+      const img = document.createElement('img');
+      img.src = url;
+      img.title = file.name;
+      imagePreview.appendChild(img);
+    });
+  }
+
+  // -----------------------------------------------
+  // 画像をbase64に変換
+  // -----------------------------------------------
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // -----------------------------------------------
+  // 診断実行
+  // -----------------------------------------------
+  async function runDiagnosis() {
+    if (selectedFiles.length === 0) {
+      alert('写真を1枚以上アップロードしてください。');
+      return;
+    }
+
+    const btn = document.getElementById('diagSubmit');
+    const loading = document.getElementById('diagLoading');
+    const result = document.getElementById('diagResult');
+
+    btn.disabled = true;
+    loading.classList.add('visible');
+    result.classList.remove('visible');
+    result.innerHTML = '';
+
+    const text = document.getElementById('diagText').value.trim();
+
+    // 画像をbase64に変換
+    const imageContents = await Promise.all(selectedFiles.map(async (file) => {
+      const b64 = await fileToBase64(file);
+      const mediaType = file.type || 'image/jpeg';
+      return {
+        type: 'image',
+        source: { type: 'base64', media_type: mediaType, data: b64 }
+      };
+    }));
+
+    // プロンプト構築
+    const prompt = `あなたはプロの商業写真ディレクターです。EC販促における写真の訴求力を専門的に評価してください。
+
+カテゴリ：${selectedCategory}
+訴求テキスト：${text || '（未入力）'}
+
+添付した${selectedFiles.length}枚の商品写真を以下の軸で評価し、必ずJSON形式のみで回答してください。
+
+評価軸：
+1. 明るさ（0〜100）：適切な露出か。暗すぎ・明るすぎではないか
+2. コントラスト（0〜100）：商品が背景から際立っているか
+3. シャープさ（0〜100）：ピントとブレの品質
+4. 高級感（0〜100）：プレミアム・高品質に見えるか
+5. 清潔感（0〜100）：背景・全体の清潔さ
+6. 質感素材感（0〜100）：素材の魅力が伝わるか
+7. テキスト訴求力（0〜100）：訴求テキストのEC完全性
+
+回答はこのJSON形式のみで返してください（説明文不要）：
+{
+  "overall": 数値,
+  "grade": "S/A/B/C",
+  "summary": "総合評価を2〜3文で",
+  "axes": [
+    {"name": "明るさ", "score": 数値, "comment": "一言コメント"},
+    {"name": "コントラスト", "score": 数値, "comment": "一言コメント"},
+    {"name": "シャープさ", "score": 数値, "comment": "一言コメント"},
+    {"name": "高級感", "score": 数値, "comment": "一言コメント"},
+    {"name": "清潔感", "score": 数値, "comment": "一言コメント"},
+    {"name": "質感・素材感", "score": 数値, "comment": "一言コメント"},
+    {"name": "テキスト訴求力", "score": 数値, "comment": "一言コメント"}
+  ],
+  "advice": [
+    "改善アドバイス1",
+    "改善アドバイス2",
+    "改善アドバイス3"
+  ]
+}`;
+
+    try {
+      const response = await fetch('/api/diagnose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          imageContents
+        })
+      });
+
+      if (!response.ok) throw new Error('API error');
+
+      const data = await response.json();
+      const parsed = JSON.parse(data.result);
+      renderResult(parsed);
+
+    } catch (err) {
+      result.classList.add('visible');
+      result.innerHTML = '<p style="color:#e53935; font-family:DM Mono,monospace; font-size:0.8rem;">診断に失敗しました。もう一度お試しください。</p>';
+    } finally {
+      loading.classList.remove('visible');
+      btn.disabled = false;
+    }
+  }
+
+  // -----------------------------------------------
+  // 結果レンダリング
+  // -----------------------------------------------
+  function renderResult(data) {
+    const result = document.getElementById('diagResult');
+    const gradeColor = { S: '#4caf50', A: '#8bc34a', B: '#ff9800', C: '#f44336' };
+    const color = gradeColor[data.grade] || '#b5916a';
+
+    let axesHTML = data.axes.map(ax => `
+      <div class="diag-axis-card">
+        <div class="diag-axis-name">${ax.name}</div>
+        <div class="diag-axis-score">${ax.score}<span> / 100</span></div>
+        <div class="diag-axis-bar"><div class="diag-axis-fill" style="width:${ax.score}%"></div></div>
+        <div class="diag-axis-comment">${ax.comment}</div>
+      </div>
+    `).join('');
+
+    let adviceHTML = data.advice.map(a => `<li>${a}</li>`).join('');
+
+    result.innerHTML = `
+      <div class="diag-overall">
+        <div class="diag-overall-score">${data.overall}<span style="font-size:1.2rem; color:#666"> / 100</span></div>
+        <div class="diag-overall-grade" style="color:${color}">グレード ${data.grade} — ${data.grade === 'S' ? '即戦力' : data.grade === 'A' ? '良好' : data.grade === 'B' ? '要改善' : '撮り直し推奨'}</div>
+        <div class="diag-overall-summary">${data.summary}</div>
+      </div>
+      <div class="diag-axes">${axesHTML}</div>
+      <div class="diag-advice">
+        <h4>IMPROVEMENT ADVICE</h4>
+        <ul>${adviceHTML}</ul>
+      </div>
+    `;
+    result.classList.add('visible');
+    result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // -----------------------------------------------
+  // Reveal on scroll
+  // -----------------------------------------------
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => observer.observe(el));
+
+  // Score bar animation
+  const scoreObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.querySelectorAll('.score-item-fill').forEach(fill => {
+          const val = fill.dataset.val;
+          setTimeout(() => { fill.style.width = val + '%'; }, 200);
+        });
+        scoreObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.3 });
+  const scoreDemo = document.getElementById('scoreDemo');
+  if (scoreDemo) scoreObserver.observe(scoreDemo);
+
+  // Form submit → Formspree
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const btn = form.querySelector('.form-submit');
+    btn.textContent = '送信中...';
+    btn.disabled = true;
+
+    const data = new FormData(form);
+
+    try {
+      const res = await fetch('https://formspree.io/f/mreanqbo', {
+        method: 'POST',
+        body: data,
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (res.ok) {
+        btn.textContent = '送信しました ✓';
+        btn.style.background = '#4caf50';
+        form.reset();
+      } else {
+        btn.textContent = '送信に失敗しました。再度お試しください。';
+        btn.style.background = '#e53935';
+        btn.disabled = false;
+      }
+    } catch (err) {
+      btn.textContent = '通信エラー。再度お試しください。';
+      btn.style.background = '#e53935';
+      btn.disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>
