@@ -1211,7 +1211,9 @@ adviceは必ず以下の条件で書いてください：
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt,
-          imageContents
+          imageContents,
+          category: selectedCategory,
+          text: document.getElementById('diagText').value.trim()
         })
       });
 
