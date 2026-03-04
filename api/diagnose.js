@@ -1,4 +1,4 @@
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbx0aMZq54sK-iA8YHvs_3ERiGQXtz80X0NR45NgyFZhYekjzMnjJq1PpPKiQIiq2Jbe/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz9cVVHNmhj1-AF46MDgTvLeC7U72-xporWy0FH9MYR65_xL4IeWDHy09Fsb8_fQAd5/exec';
 
 export const config = {
   api: {
