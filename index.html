@@ -811,7 +811,6 @@
     transform: translateY(0);
   }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -1555,251 +1554,227 @@ adviceは必ず以下の条件で書いてください：
   // PDF生成・ダウンロード
   // -----------------------------------------------
   async function downloadPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-    const diagResult = document.getElementById('diagResult');
-    if (!diagResult || !window._lastDiagData) {
+    if (!window._lastDiagData) {
       alert('先に診断を実行してください');
       return;
     }
 
     const data = window._lastDiagData;
     const date = new Date().toLocaleDateString('ja-JP');
-    const W = 210; // A4幅
-    const H = 297; // A4高さ
-
-    // カラー定義
-    const INK     = [28, 28, 26];
-    const PAPER   = [245, 242, 237];
-    const ACCENT  = [181, 145, 106];
-    const MUTED   = [107, 101, 96];
-    const WHITE   = [255, 255, 255];
-    const GRADE_COLORS = { S:[46,125,50], A:[85,139,47], B:[230,81,0], C:[198,40,40] };
-
-    // 背景
-    doc.setFillColor(...INK);
-    doc.rect(0, 0, W, H, 'F');
-
-    // ヘッダーバー
-    doc.setFillColor(...ACCENT);
-    doc.rect(0, 0, W, 18, 'F');
-
-    // ロゴ
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(...WHITE);
-    doc.text('photo', 14, 12);
-    doc.setTextColor(...INK);
-    doc.text('kara', 14 + doc.getTextWidth('photo'), 12);
-    doc.setTextColor(...WHITE);
-
-    // 右上：日付・レポートラベル
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(...INK);
-    doc.text('DIAGNOSIS REPORT', W - 14, 8, { align: 'right' });
-    doc.text(date, W - 14, 13, { align: 'right' });
-
-    // カテゴリ・プラットフォーム
-    let y = 26;
-    doc.setFontSize(7);
-    doc.setTextColor(...MUTED);
-    doc.setFont('helvetica', 'normal');
-    const catLabel = `${data.category || ''} / ${data.platform || ''}`;
-    doc.text(catLabel, 14, y);
-
-    // ===== 総合スコア エリア =====
-    y += 6;
-    doc.setFillColor(40, 40, 38);
-    doc.roundedRect(10, y, W - 20, 38, 3, 3, 'F');
-
-    // グレードバッジ
     const grade = data.grade || 'B';
-    const gc = GRADE_COLORS[grade] || GRADE_COLORS['B'];
-    doc.setFillColor(...gc);
-    doc.roundedRect(16, y + 6, 22, 22, 2, 2, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.setTextColor(...WHITE);
-    doc.text(grade, 27, y + 20, { align: 'center' });
+    const gradeLabels = { S:'即戦力', A:'良好', B:'要改善', C:'撮り直し推奨' };
+    const gradeColors = { S:'#2e7d32', A:'#558b2f', B:'#e65100', C:'#c62828' };
+    const gradeColor = gradeColors[grade] || gradeColors['B'];
 
-    // スコア数値
-    doc.setFontSize(32);
-    doc.setTextColor(...ACCENT);
-    doc.text(String(data.overall || 0), 52, y + 24);
-    doc.setFontSize(11);
-    doc.setTextColor(...MUTED);
-    doc.text('/ 100', 52 + doc.getTextWidth(String(data.overall || 0)) + 2, y + 24);
-
-    // グレード説明
-    const gradeLabels = { S:'即戦力', A:'良好', B:'要改善', C:'再撮影推奨' };
-    doc.setFontSize(8);
-    doc.setTextColor(...MUTED);
-    doc.text(gradeLabels[grade] || '', 52, y + 30);
-
-    // サマリーテキスト（右側）
-    const summary = data.summary || '';
-    doc.setFontSize(7);
-    doc.setTextColor(180, 175, 168);
-    const summaryLines = doc.splitTextToSize(summary, 95);
-    doc.text(summaryLines.slice(0, 3), W - 24, y + 10, { align: 'right' });
-
-    // ===== 評価軸 =====
-    y += 46;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.5);
-    doc.setTextColor(...ACCENT);
-    doc.text('EVALUATION AXES', 14, y);
-
-    y += 5;
-    const axes = data.axes || [];
-    const axW = (W - 28) / 2;
-
-    axes.forEach((ax, i) => {
-      const col = i % 2;
-      const row = Math.floor(i / 2);
-      const ax_x = 14 + col * (axW + 4);
-      const ax_y = y + row * 18;
-
-      // 背景
-      doc.setFillColor(35, 35, 33);
-      doc.roundedRect(ax_x, ax_y, axW, 15, 1.5, 1.5, 'F');
-
-      // 軸名
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.5);
-      doc.setTextColor(...PAPER);
-      doc.text(ax.name || '', ax_x + 3, ax_y + 5.5);
-
-      // スコア数値
-      const score = ax.score || 0;
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(...ACCENT);
-      doc.text(String(score), ax_x + axW - 3, ax_y + 6.5, { align: 'right' });
-
-      // バーグラフ背景
-      const barX = ax_x + 3;
-      const barY = ax_y + 9;
-      const barW = axW - 22;
-      const barH = 2.5;
-      doc.setFillColor(55, 55, 52);
-      doc.roundedRect(barX, barY, barW, barH, 1, 1, 'F');
-
-      // バーグラフ塗り
-      const filled = (score / 100) * barW;
-      const barColor = score >= 80 ? [76,175,80] : score >= 60 ? [181,145,106] : score >= 40 ? [255,152,0] : [244,67,54];
-      doc.setFillColor(...barColor);
-      doc.roundedRect(barX, barY, Math.max(filled, 1), barH, 1, 1, 'F');
-
-      // コメント
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(5.5);
-      doc.setTextColor(...MUTED);
-      const comment = doc.splitTextToSize(ax.comment || '', barW + 12);
-      doc.text(comment[0] || '', barX, ax_y + 14);
-    });
-
-    // ===== 改善アドバイス =====
-    const axisRows = Math.ceil(axes.length / 2);
-    y = y + axisRows * 18 + 8;
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.5);
-    doc.setTextColor(...ACCENT);
-    doc.text('IMPROVEMENT ADVICE', 14, y);
-
-    y += 5;
-    const advice = data.advice || [];
-    const adviceDetail = data.advice_detail || [];
-
-    advice.forEach((adv, i) => {
-      const detail = adviceDetail[i] || '';
-      const blockH = detail ? 14 : 10;
-
-      doc.setFillColor(35, 35, 33);
-      doc.roundedRect(10, y, W - 20, blockH, 1.5, 1.5, 'F');
-
-      // 番号バッジ
-      doc.setFillColor(...ACCENT);
-      doc.circle(16, y + blockH/2, 2.5, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6);
-      doc.setTextColor(...WHITE);
-      doc.text(String(i + 1), 16, y + blockH/2 + 1, { align: 'center' });
-
-      // アドバイス本文
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.setTextColor(...PAPER);
-      doc.text(adv, 22, y + (detail ? 6 : blockH/2 + 1));
-
-      // 詳細
-      if (detail) {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6);
-        doc.setTextColor(...MUTED);
-        const detailLines = doc.splitTextToSize(detail, W - 36);
-        doc.text(detailLines[0] || '', 22, y + 10);
-      }
-
-      y += blockH + 3;
-    });
-
-    // ===== 商品写真サムネイル =====
+    const axes = (data.axes || []);
+    const advice = (data.advice || []);
+    const adviceDetail = (data.advice_detail || []);
     const imageUrls = window._lastImageUrls || [];
-    if (imageUrls.length > 0) {
-      y += 4;
-      doc.setFontSize(6.5);
-      doc.setTextColor(...ACCENT);
-      doc.text('DIAGNOSED IMAGES', 14, y);
-      y += 4;
 
-      // サムネイルはURLをimgタグで読み込んでcanvasに描画
-      const thumbSize = 20;
-      const thumbGap = 4;
-      for (let i = 0; i < Math.min(imageUrls.length, 8); i++) {
-        try {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          await new Promise((resolve) => {
-            img.onload = resolve;
-            img.onerror = resolve;
-            img.src = imageUrls[i];
-          });
-          const canvas = document.createElement('canvas');
-          canvas.width = 60; canvas.height = 60;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, 60, 60);
-          const imgData = canvas.toDataURL('image/jpeg', 0.8);
-          const tx = 14 + i * (thumbSize + thumbGap);
-          doc.setFillColor(40, 40, 38);
-          doc.rect(tx, y, thumbSize, thumbSize, 'F');
-          doc.addImage(imgData, 'JPEG', tx, y, thumbSize, thumbSize);
-        } catch(e) {
-          // 画像読み込み失敗は無視
-        }
-      }
-      y += thumbSize + 4;
+    // 評価軸HTML生成
+    const axesHTML = axes.map(ax => {
+      const score = ax.score || 0;
+      const barColor = score >= 80 ? '#4caf50' : score >= 60 ? '#b5916a' : score >= 40 ? '#ff9800' : '#f44336';
+      return `
+        <div class="pdf-axis">
+          <div class="pdf-axis-header">
+            <span class="pdf-axis-name">${ax.name}</span>
+            <span class="pdf-axis-score" style="color:${barColor}">${score}</span>
+          </div>
+          <div class="pdf-bar-bg">
+            <div class="pdf-bar-fill" style="width:${score}%; background:${barColor}"></div>
+          </div>
+          <div class="pdf-axis-comment">${ax.comment || ''}</div>
+        </div>`;
+    }).join('');
+
+    // アドバイスHTML生成
+    const adviceHTML = advice.map((adv, i) => `
+      <div class="pdf-advice-item">
+        <div class="pdf-advice-num">${i + 1}</div>
+        <div class="pdf-advice-body">
+          <div class="pdf-advice-title">${adv}</div>
+          ${adviceDetail[i] ? `<div class="pdf-advice-detail">${adviceDetail[i]}</div>` : ''}
+        </div>
+      </div>`).join('');
+
+    // サムネイルHTML生成
+    const thumbsHTML = imageUrls.length > 0 ? `
+      <div class="pdf-section-label">DIAGNOSED IMAGES</div>
+      <div class="pdf-thumbs">
+        ${imageUrls.map(url => `<img class="pdf-thumb" src="${url}" crossorigin="anonymous"/>`).join('')}
+      </div>` : '';
+
+    const html = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>photokara 診断レポート ${date}</title>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #1c1c1a;
+    color: #f5f2ed;
+    font-family: 'Shippori Mincho', serif;
+    padding: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page { max-width: 794px; margin: 0 auto; padding: 0; }
+
+  /* ヘッダー */
+  .pdf-header {
+    background: #b5916a;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .pdf-logo { font-family:'DM Mono',monospace; font-size:14px; font-weight:700; color:#1c1c1a; letter-spacing:0.1em; }
+  .pdf-logo span { color:#fff; }
+  .pdf-header-right { text-align:right; }
+  .pdf-header-label { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.15em; color:#1c1c1a; }
+  .pdf-header-date { font-family:'DM Mono',monospace; font-size:9px; color:#1c1c1a; margin-top:2px; }
+
+  /* コンテンツ */
+  .pdf-body { padding: 28px 32px; }
+
+  /* カテゴリ */
+  .pdf-meta { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.12em; color:#6b6560; margin-bottom:16px; }
+
+  /* 総合スコア */
+  .pdf-score-block {
+    background: #252523;
+    border-radius: 6px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  .pdf-grade-badge {
+    width: 60px; height: 60px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family:'DM Mono',monospace; font-size:28px; font-weight:700; color:#fff;
+    flex-shrink: 0;
+  }
+  .pdf-score-num { font-family:'DM Mono',monospace; font-size:48px; font-weight:300; color:#b5916a; line-height:1; }
+  .pdf-score-denom { font-family:'DM Mono',monospace; font-size:14px; color:#6b6560; margin-left:4px; }
+  .pdf-grade-label { font-size:11px; color:#6b6560; margin-top:4px; }
+  .pdf-summary { font-size:10px; color:#aaa; line-height:1.8; flex:1; }
+
+  /* セクションラベル */
+  .pdf-section-label {
+    font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.18em;
+    color:#b5916a; margin-bottom:10px; margin-top:20px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .pdf-section-label::before { content:''; display:block; width:20px; height:1px; background:#b5916a; }
+
+  /* 評価軸グリッド */
+  .pdf-axes { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .pdf-axis { background:#252523; border-radius:4px; padding:12px 14px; }
+  .pdf-axis-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .pdf-axis-name { font-size:9px; font-weight:700; color:#f5f2ed; }
+  .pdf-axis-score { font-family:'DM Mono',monospace; font-size:14px; font-weight:500; }
+  .pdf-bar-bg { height:4px; background:#333; border-radius:2px; margin-bottom:6px; }
+  .pdf-bar-fill { height:4px; border-radius:2px; }
+  .pdf-axis-comment { font-size:8px; color:#6b6560; line-height:1.6; }
+
+  /* アドバイス */
+  .pdf-advice-item {
+    background:#252523; border-radius:4px; padding:12px 14px;
+    display:flex; gap:12px; margin-bottom:8px; align-items:flex-start;
+  }
+  .pdf-advice-num {
+    width:20px; height:20px; border-radius:50%; background:#b5916a;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'DM Mono',monospace; font-size:9px; font-weight:700; color:#fff;
+    flex-shrink:0; margin-top:1px;
+  }
+  .pdf-advice-title { font-size:10px; font-weight:700; color:#f5f2ed; line-height:1.6; }
+  .pdf-advice-detail { font-size:8.5px; color:#888; line-height:1.7; margin-top:4px; }
+
+  /* サムネイル */
+  .pdf-thumbs { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+  .pdf-thumb { width:72px; height:72px; object-fit:cover; border-radius:3px; border:1px solid #333; }
+
+  /* フッター */
+  .pdf-footer {
+    background:#b5916a; padding:10px 32px;
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:28px;
+  }
+  .pdf-footer-left { font-family:'DM Mono',monospace; font-size:8px; color:#1c1c1a; font-weight:700; }
+  .pdf-footer-right { font-family:'DM Mono',monospace; font-size:7px; color:#1c1c1a; }
+
+  /* 印刷設定 */
+  @media print {
+    body { background:#1c1c1a !important; }
+    @page { margin: 0; size: A4; }
+  }
+  @media screen {
+    body { padding: 20px 0; }
+    .print-btn {
+      display:block; text-align:center; margin:16px auto 24px;
+      font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.1em;
+      background:#b5916a; color:#fff; border:none; padding:12px 32px;
+      border-radius:3px; cursor:pointer; width:fit-content;
     }
+  }
+</style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">🖨️ PDFとして保存（印刷ダイアログ → PDFに保存）</button>
+<div class="page">
+  <div class="pdf-header">
+    <div class="pdf-logo">photo<span>kara</span></div>
+    <div class="pdf-header-right">
+      <div class="pdf-header-label">DIAGNOSIS REPORT</div>
+      <div class="pdf-header-date">${date}</div>
+    </div>
+  </div>
 
-    // ===== フッター =====
-    doc.setFillColor(...ACCENT);
-    doc.rect(0, H - 12, W, 12, 'F');
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(...INK);
-    doc.text('photokara.vercel.app', 14, H - 4.5);
-    doc.setTextColor(...INK);
-    doc.text('powered by photokara — EC商品写真診断サービス', W - 14, H - 4.5, { align: 'right' });
+  <div class="pdf-body">
+    <div class="pdf-meta">${data.category || ''} / ${data.platform || ''}</div>
 
-    // 保存
-    const filename = `photokara_診断レポート_${date.replace(/\//g, '')}.pdf`;
-    doc.save(filename);
+    <div class="pdf-score-block">
+      <div class="pdf-grade-badge" style="background:${gradeColor}">${grade}</div>
+      <div>
+        <div style="display:flex;align-items:baseline;gap:4px;">
+          <span class="pdf-score-num">${data.overall || 0}</span>
+          <span class="pdf-score-denom">/ 100</span>
+        </div>
+        <div class="pdf-grade-label">${gradeLabels[grade] || ''}</div>
+      </div>
+      <div class="pdf-summary">${data.summary || ''}</div>
+    </div>
+
+    <div class="pdf-section-label">EVALUATION AXES</div>
+    <div class="pdf-axes">${axesHTML}</div>
+
+    <div class="pdf-section-label">IMPROVEMENT ADVICE</div>
+    ${adviceHTML}
+
+    ${thumbsHTML}
+  </div>
+
+  <div class="pdf-footer">
+    <div class="pdf-footer-left">photokara.vercel.app</div>
+    <div class="pdf-footer-right">powered by photokara — EC商品写真診断サービス</div>
+  </div>
+</div>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
   }
 
-  // -----------------------------------------------
+    // -----------------------------------------------
   // フィードバック送信
   // -----------------------------------------------
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbz9cVVHNmhj1-AF46MDgTvLeC7U72-xporWy0FH9MYR65_xL4IeWDHy09Fsb8_fQAd5/exec';
