@@ -811,6 +811,7 @@
     transform: translateY(0);
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -991,7 +992,7 @@
       今すぐ診断する
     </h2>
     <p style="color: #888; font-size: 0.88rem; margin-bottom: 0; font-family:'DM Mono',monospace; letter-spacing:0.05em;">
-      β版・無料・登録不要 — JPEG / PNG / WebP・1枚5MB以下・最大5枚
+      β版・無料・登録不要 — JPEG / PNG / WebP・1枚5MB以下・最大8枚
     </p>
 
     <div class="diag-form">
@@ -1025,7 +1026,7 @@
 
       <!-- 03 画像アップロード（役割選択付き） -->
       <div>
-        <p style="font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.15em; color:#666; margin-bottom:10px;">03 — 商品写真をアップロード（最大5枚）</p>
+        <p style="font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.15em; color:#666; margin-bottom:10px;">03 — 商品写真をアップロード（最大8枚）</p>
         <div class="diag-dropzone" id="dropzone">
           <input type="file" id="imageInput" accept="image/jpeg,image/png,image/webp" multiple>
           <div class="diag-dropzone-icon">📷</div>
@@ -1476,6 +1477,9 @@ adviceは必ず以下の条件で書いてください：
       }
 
       const parsed = data.result;
+      parsed.category = selectedCategory;
+      parsed.platform = selectedPlatform;
+      window._lastDiagData = parsed;
       window._lastImageUrls = data.imageUrls || [];
       renderResult(parsed);
 
@@ -1522,6 +1526,12 @@ adviceは必ず以下の条件で書いてください：
         <h4>IMPROVEMENT ADVICE</h4>
         <ul>${adviceHTML}</ul>
       </div>
+      <div style="margin-top:20px; text-align:center;">
+        <button class="diag-submit" style="background:#2a2a28; border:1px solid #b5916a; color:#b5916a; padding:14px 32px; font-size:0.82rem; letter-spacing:0.12em;" onclick="downloadPDF()">
+          📄 採点シートをダウンロード（PDF）
+        </button>
+      </div>
+
       <div class="diag-feedback" id="feedbackArea">
         <p class="diag-feedback-label">この診断結果はどうでしたか？</p>
         <div class="diag-feedback-btns">
@@ -1539,6 +1549,254 @@ adviceは必ず以下の条件で書いてください：
     `;
     result.classList.add('visible');
     result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // -----------------------------------------------
+  // PDF生成・ダウンロード
+  // -----------------------------------------------
+  async function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    const diagResult = document.getElementById('diagResult');
+    if (!diagResult || !window._lastDiagData) {
+      alert('先に診断を実行してください');
+      return;
+    }
+
+    const data = window._lastDiagData;
+    const date = new Date().toLocaleDateString('ja-JP');
+    const W = 210; // A4幅
+    const H = 297; // A4高さ
+
+    // カラー定義
+    const INK     = [28, 28, 26];
+    const PAPER   = [245, 242, 237];
+    const ACCENT  = [181, 145, 106];
+    const MUTED   = [107, 101, 96];
+    const WHITE   = [255, 255, 255];
+    const GRADE_COLORS = { S:[46,125,50], A:[85,139,47], B:[230,81,0], C:[198,40,40] };
+
+    // 背景
+    doc.setFillColor(...INK);
+    doc.rect(0, 0, W, H, 'F');
+
+    // ヘッダーバー
+    doc.setFillColor(...ACCENT);
+    doc.rect(0, 0, W, 18, 'F');
+
+    // ロゴ
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(...WHITE);
+    doc.text('photo', 14, 12);
+    doc.setTextColor(...INK);
+    doc.text('kara', 14 + doc.getTextWidth('photo'), 12);
+    doc.setTextColor(...WHITE);
+
+    // 右上：日付・レポートラベル
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...INK);
+    doc.text('DIAGNOSIS REPORT', W - 14, 8, { align: 'right' });
+    doc.text(date, W - 14, 13, { align: 'right' });
+
+    // カテゴリ・プラットフォーム
+    let y = 26;
+    doc.setFontSize(7);
+    doc.setTextColor(...MUTED);
+    doc.setFont('helvetica', 'normal');
+    const catLabel = `${data.category || ''} / ${data.platform || ''}`;
+    doc.text(catLabel, 14, y);
+
+    // ===== 総合スコア エリア =====
+    y += 6;
+    doc.setFillColor(40, 40, 38);
+    doc.roundedRect(10, y, W - 20, 38, 3, 3, 'F');
+
+    // グレードバッジ
+    const grade = data.grade || 'B';
+    const gc = GRADE_COLORS[grade] || GRADE_COLORS['B'];
+    doc.setFillColor(...gc);
+    doc.roundedRect(16, y + 6, 22, 22, 2, 2, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.setTextColor(...WHITE);
+    doc.text(grade, 27, y + 20, { align: 'center' });
+
+    // スコア数値
+    doc.setFontSize(32);
+    doc.setTextColor(...ACCENT);
+    doc.text(String(data.overall || 0), 52, y + 24);
+    doc.setFontSize(11);
+    doc.setTextColor(...MUTED);
+    doc.text('/ 100', 52 + doc.getTextWidth(String(data.overall || 0)) + 2, y + 24);
+
+    // グレード説明
+    const gradeLabels = { S:'即戦力', A:'良好', B:'要改善', C:'再撮影推奨' };
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTED);
+    doc.text(gradeLabels[grade] || '', 52, y + 30);
+
+    // サマリーテキスト（右側）
+    const summary = data.summary || '';
+    doc.setFontSize(7);
+    doc.setTextColor(180, 175, 168);
+    const summaryLines = doc.splitTextToSize(summary, 95);
+    doc.text(summaryLines.slice(0, 3), W - 24, y + 10, { align: 'right' });
+
+    // ===== 評価軸 =====
+    y += 46;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(...ACCENT);
+    doc.text('EVALUATION AXES', 14, y);
+
+    y += 5;
+    const axes = data.axes || [];
+    const axW = (W - 28) / 2;
+
+    axes.forEach((ax, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const ax_x = 14 + col * (axW + 4);
+      const ax_y = y + row * 18;
+
+      // 背景
+      doc.setFillColor(35, 35, 33);
+      doc.roundedRect(ax_x, ax_y, axW, 15, 1.5, 1.5, 'F');
+
+      // 軸名
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(...PAPER);
+      doc.text(ax.name || '', ax_x + 3, ax_y + 5.5);
+
+      // スコア数値
+      const score = ax.score || 0;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...ACCENT);
+      doc.text(String(score), ax_x + axW - 3, ax_y + 6.5, { align: 'right' });
+
+      // バーグラフ背景
+      const barX = ax_x + 3;
+      const barY = ax_y + 9;
+      const barW = axW - 22;
+      const barH = 2.5;
+      doc.setFillColor(55, 55, 52);
+      doc.roundedRect(barX, barY, barW, barH, 1, 1, 'F');
+
+      // バーグラフ塗り
+      const filled = (score / 100) * barW;
+      const barColor = score >= 80 ? [76,175,80] : score >= 60 ? [181,145,106] : score >= 40 ? [255,152,0] : [244,67,54];
+      doc.setFillColor(...barColor);
+      doc.roundedRect(barX, barY, Math.max(filled, 1), barH, 1, 1, 'F');
+
+      // コメント
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5.5);
+      doc.setTextColor(...MUTED);
+      const comment = doc.splitTextToSize(ax.comment || '', barW + 12);
+      doc.text(comment[0] || '', barX, ax_y + 14);
+    });
+
+    // ===== 改善アドバイス =====
+    const axisRows = Math.ceil(axes.length / 2);
+    y = y + axisRows * 18 + 8;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(...ACCENT);
+    doc.text('IMPROVEMENT ADVICE', 14, y);
+
+    y += 5;
+    const advice = data.advice || [];
+    const adviceDetail = data.advice_detail || [];
+
+    advice.forEach((adv, i) => {
+      const detail = adviceDetail[i] || '';
+      const blockH = detail ? 14 : 10;
+
+      doc.setFillColor(35, 35, 33);
+      doc.roundedRect(10, y, W - 20, blockH, 1.5, 1.5, 'F');
+
+      // 番号バッジ
+      doc.setFillColor(...ACCENT);
+      doc.circle(16, y + blockH/2, 2.5, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6);
+      doc.setTextColor(...WHITE);
+      doc.text(String(i + 1), 16, y + blockH/2 + 1, { align: 'center' });
+
+      // アドバイス本文
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(...PAPER);
+      doc.text(adv, 22, y + (detail ? 6 : blockH/2 + 1));
+
+      // 詳細
+      if (detail) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6);
+        doc.setTextColor(...MUTED);
+        const detailLines = doc.splitTextToSize(detail, W - 36);
+        doc.text(detailLines[0] || '', 22, y + 10);
+      }
+
+      y += blockH + 3;
+    });
+
+    // ===== 商品写真サムネイル =====
+    const imageUrls = window._lastImageUrls || [];
+    if (imageUrls.length > 0) {
+      y += 4;
+      doc.setFontSize(6.5);
+      doc.setTextColor(...ACCENT);
+      doc.text('DIAGNOSED IMAGES', 14, y);
+      y += 4;
+
+      // サムネイルはURLをimgタグで読み込んでcanvasに描画
+      const thumbSize = 20;
+      const thumbGap = 4;
+      for (let i = 0; i < Math.min(imageUrls.length, 8); i++) {
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+            img.src = imageUrls[i];
+          });
+          const canvas = document.createElement('canvas');
+          canvas.width = 60; canvas.height = 60;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, 60, 60);
+          const imgData = canvas.toDataURL('image/jpeg', 0.8);
+          const tx = 14 + i * (thumbSize + thumbGap);
+          doc.setFillColor(40, 40, 38);
+          doc.rect(tx, y, thumbSize, thumbSize, 'F');
+          doc.addImage(imgData, 'JPEG', tx, y, thumbSize, thumbSize);
+        } catch(e) {
+          // 画像読み込み失敗は無視
+        }
+      }
+      y += thumbSize + 4;
+    }
+
+    // ===== フッター =====
+    doc.setFillColor(...ACCENT);
+    doc.rect(0, H - 12, W, 12, 'F');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...INK);
+    doc.text('photokara.vercel.app', 14, H - 4.5);
+    doc.setTextColor(...INK);
+    doc.text('powered by photokara — EC商品写真診断サービス', W - 14, H - 4.5, { align: 'right' });
+
+    // 保存
+    const filename = `photokara_診断レポート_${date.replace(/\//g, '')}.pdf`;
+    doc.save(filename);
   }
 
   // -----------------------------------------------
