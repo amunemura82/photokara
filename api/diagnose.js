@@ -15,6 +15,7 @@ async function postToGAS(payload) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
+
     if (!r.ok) {
       const t = await r.text().catch(() => '');
       console.error('[GAS] failed:', r.status, t);
@@ -46,6 +47,7 @@ async function uploadToCloudinary(base64Data, index = 0) {
   const signStr = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
   const signature = createHash('sha1').update(signStr).digest('hex');
 
+  // ✅ FormData（これが安定）
   const form = new FormData();
   form.append('file', `data:image/jpeg;base64,${base64Data}`);
   form.append('api_key', apiKey);
@@ -78,7 +80,7 @@ async function uploadToCloudinary(base64Data, index = 0) {
   return data.secure_url;
 }
 
-/** tool_useの出力を最低限正規化 */
+/** tool_use出力の正規化 */
 function normalizeDiagnosis(input) {
   const out = {
     overall: typeof input?.overall === 'number' ? input.overall : Number(input?.overall ?? 0),
@@ -110,25 +112,20 @@ function normalizeDiagnosis(input) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
 
-  // 必須：Anthropic
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (!anthropicKey) {
-    return res.status(500).json({ ok: false, error: 'ANTHROPIC_API_KEY not configured' });
-  }
+  if (!anthropicKey) return res.status(500).json({ ok: false, error: 'ANTHROPIC_API_KEY not configured' });
 
-  // 受け取り（フロントが送っていない場合は空でOK）
   const prompt = req.body?.prompt;
   const category = req.body?.category || '';
+  const platform = req.body?.platform || '';
   const text = req.body?.text || '';
-  const platform = req.body?.platform || ''; // ★列ズレ防止用に必ず送る
-  const roles = req.body?.roles || [];       // ★列ズレ防止用に必ず送る（配列でも文字列でもOK）
+  const roles = req.body?.roles || [];
   const imageContents = req.body?.imageContents;
 
   if (!prompt || typeof prompt !== 'string') {
     return res.status(400).json({ ok: false, error: 'prompt is required' });
   }
 
-  // 画像ブロック（Claude形式）をバリデーション
   const validImages = Array.isArray(imageContents)
     ? imageContents.filter(
         (img) =>
@@ -141,7 +138,7 @@ export default async function handler(req, res) {
 
   const contentBlocks = [...validImages, { type: 'text', text: prompt }];
 
-  // ✅ Claude：tool_useで構造化出力（JSON.parse不要）
+  // ✅ Claudeを tool_use で固定（JSON.parse不要）
   const tools = [
     {
       name: 'emit_diagnosis',
@@ -174,9 +171,7 @@ export default async function handler(req, res) {
     },
   ];
 
-  let diagnosis = null;
-  let claudeRaw = '';
-
+  let diagnosis;
   try {
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -197,89 +192,43 @@ export default async function handler(req, res) {
 
     if (!anthropicRes.ok) {
       const errText = await anthropicRes.text().catch(() => '');
-      console.error('[Claude] API error:', anthropicRes.status, errText);
-
-      await postToGAS({
-        category,
-        platform,
-        roles,
-        text,
-        error: 'CLAUDE_API_ERROR',
-        claudeStatus: anthropicRes.status,
-        claudeDetail: errText.slice(0, 5000),
-      });
-
-      return res.status(500).json({
-        ok: false,
-        error: `Anthropic API error: ${anthropicRes.status}`,
-        detail: errText,
-      });
+      await postToGAS({ category, platform, roles, text, error: 'CLAUDE_API_ERROR', detail: errText.slice(0, 5000) });
+      return res.status(500).json({ ok: false, error: `Anthropic API error: ${anthropicRes.status}`, detail: errText });
     }
 
     const data = await anthropicRes.json();
-
-    claudeRaw = Array.isArray(data?.content)
-      ? data.content.filter((b) => b?.type === 'text').map((b) => b.text).join('')
-      : '';
-
     const toolBlock = Array.isArray(data?.content)
       ? data.content.find((b) => b?.type === 'tool_use' && b?.name === 'emit_diagnosis')
       : null;
 
     if (!toolBlock?.input) {
-      console.error('[Claude] tool_use missing:', JSON.stringify(data?.content || []).slice(0, 2000));
-
-      await postToGAS({
-        category,
-        platform,
-        roles,
-        text,
-        error: 'TOOL_USE_MISSING',
-        claudeRaw: claudeRaw.slice(0, 5000),
-      });
-
-      return res.status(500).json({
-        ok: false,
-        error: 'Tool output missing',
-        raw: claudeRaw,
-      });
+      await postToGAS({ category, platform, roles, text, error: 'TOOL_USE_MISSING' });
+      return res.status(500).json({ ok: false, error: 'Tool output missing' });
     }
 
     diagnosis = normalizeDiagnosis(toolBlock.input);
   } catch (e) {
-    console.error('[Handler] Claude exception:', e?.message || e);
-
-    await postToGAS({
-      category,
-      platform,
-      roles,
-      text,
-      error: 'CLAUDE_EXCEPTION',
-      detail: (e?.message || String(e)).slice(0, 5000),
-    });
-
+    await postToGAS({ category, platform, roles, text, error: 'CLAUDE_EXCEPTION', detail: String(e).slice(0, 5000) });
     return res.status(500).json({ ok: false, error: e?.message || 'Unknown error' });
   }
 
-  // ✅ Cloudinary：失敗しても診断結果は返す
+  // ✅ Cloudinary：失敗理由も残す
   let imageUrls = [];
   let cloudinaryError = '';
   if (validImages.length > 0) {
     try {
-      imageUrls = await Promise.all(
-        validImages.map((img, i) => uploadToCloudinary(img.source.data, i))
-      );
+      imageUrls = await Promise.all(validImages.map((img, i) => uploadToCloudinary(img.source.data, i)));
     } catch (e) {
       cloudinaryError = e?.message || String(e);
       console.error('[Cloudinary] upload failed:', cloudinaryError);
     }
   }
 
-  // ✅ GASへ送る（列ズレしない形：キー固定）
+  // ✅ GASへ（キー固定：列ズレしない）
   await postToGAS({
     category,
     platform,
-    roles,
+    roles,              // 配列のままでOK（GAS側で join する）
     text,
     overall: diagnosis.overall,
     grade: diagnosis.grade,
@@ -287,11 +236,10 @@ export default async function handler(req, res) {
     advice: diagnosis.advice,
     advice_detail: diagnosis.advice_detail,
     summary: diagnosis.summary,
-    imageUrls, // ←配列のままでOK（GAS側で \n 連結して「画像URL」列へ）
-    cloudinaryError,
+    imageUrls,          // 配列のままでOK（GAS側で \n 連結）
+    cloudinaryError,    // ★これで「なぜURLが入らないか」がシートに残る
   });
 
-  // ✅ フロントへ返す（UIの見た目は自由に整形できる）
   return res.status(200).json({
     ok: true,
     result: diagnosis,
