@@ -1,13 +1,57 @@
-// pages/api/diagnose.js
-// v2
-const GAS_URL =
-  'https://script.google.com/macros/s/AKfycbxwZvkREo8g0_6Gi3o9Dr3GY-WfGeplAyEv78UbDD4PxRzNdUF9K81eg-chSq6Y3Z85/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz9cVVHNmhj1-AF46MDgTvLeC7U72-xporWy0FH9MYR65_xL4IeWDHy09Fsb8_fQAd5/exec';
 
 export const config = {
-  api: { bodyParser: { sizeLimit: '20mb' } },
+  api: {
+    bodyParser: { sizeLimit: '20mb' },
+  },
 };
 
-/** GASへ送信（失敗してもthrowしない） */
+// JSON候補を安全に抽出
+function extractJsonCandidate(rawText) {
+  if (!rawText || typeof rawText !== 'string') return null;
+  const fence = rawText.match(/```json\s*([\s\S]*?)\s*```/i);
+  if (fence?.[1]) return fence[1].trim();
+  const first = rawText.indexOf('{');
+  const last = rawText.lastIndexOf('}');
+  if (first === -1 || last === -1 || last <= first) return null;
+  return rawText.slice(first, last + 1).trim();
+}
+
+// 壊れたJSONを修復して安全にパース
+function safeJsonParse(jsonStr) {
+  if (!jsonStr) return { ok: false, error: 'No JSON string' };
+
+  // 1) そのままパース
+  try {
+    return { ok: true, value: JSON.parse(jsonStr) };
+  } catch (e1) {
+    // 2) 制御文字・不正な改行を除去して再試行
+    try {
+      const cleaned = jsonStr
+        .replace(/[\x00-\x1F\x7F]/g, (c) => {
+          // 許可する制御文字（タブ・改行・CR）はエスケープに変換
+          if (c === '\t') return '\\t';
+          if (c === '\n') return '\\n';
+          if (c === '\r') return '\\r';
+          return ''; // その他は削除
+        });
+      return { ok: true, value: JSON.parse(cleaned) };
+    } catch (e2) {
+      // 3) 最終手段：正規表現でJSONを再構築
+      try {
+        // 文字列値内の生の改行を\nに変換
+        const fixed = jsonStr.replace(/"((?:[^"\\]|\\.)*)"/g, (match) => {
+          return match.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+        });
+        return { ok: true, value: JSON.parse(fixed) };
+      } catch (e3) {
+        return { ok: false, error: e1?.message || 'JSON parse error' };
+      }
+    }
+  }
+}
+
+// GASに送る（失敗してもthrowしない）
 async function postToGAS(payload) {
   try {
     const r = await fetch(GAS_URL, {
@@ -15,17 +59,16 @@ async function postToGAS(payload) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-
     if (!r.ok) {
       const t = await r.text().catch(() => '');
-      console.error('[GAS] failed:', r.status, t);
+      console.error('GAS logging failed:', r.status, t);
     }
   } catch (e) {
-    console.error('[GAS] exception:', e?.message || e);
+    console.error('GAS logging exception:', e?.message || e);
   }
 }
 
-/** Cloudinaryアップロード（base64 -> secure_url） */
+// Cloudinaryに画像をアップロード
 async function uploadToCloudinary(base64Data, index = 0) {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
@@ -34,27 +77,28 @@ async function uploadToCloudinary(base64Data, index = 0) {
   if (!cloudName || !apiKey || !apiSecret) {
     throw new Error(
       `Cloudinary env vars not configured: ` +
-        `CLOUDINARY_CLOUD_NAME=${!!cloudName}, ` +
-        `CLOUDINARY_API_KEY=${!!apiKey}, ` +
-        `CLOUDINARY_API_SECRET=${!!apiSecret}`
+      `CLOUDINARY_CLOUD_NAME=${!!cloudName}, ` +
+      `CLOUDINARY_API_KEY=${!!apiKey}, ` +
+      `CLOUDINARY_API_SECRET=${!!apiSecret}`
     );
   }
 
   const timestamp = Math.floor(Date.now() / 1000);
   const folder = 'photokara';
+  const publicId = `diag_${Date.now()}_${index}`;
 
   const { createHash } = await import('crypto');
-  const signStr = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+  // 署名はアルファベット順・public_idも含める
+  const signStr = `folder=${folder}&public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
   const signature = createHash('sha1').update(signStr).digest('hex');
 
-  // ✅ FormData（これが安定）
   const form = new FormData();
   form.append('file', `data:image/jpeg;base64,${base64Data}`);
   form.append('api_key', apiKey);
   form.append('timestamp', String(timestamp));
   form.append('signature', signature);
   form.append('folder', folder);
-  form.append('public_id', `diag_${Date.now()}_${index}`);
+  form.append('public_id', publicId);
 
   const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
     method: 'POST',
@@ -80,170 +124,120 @@ async function uploadToCloudinary(base64Data, index = 0) {
   return data.secure_url;
 }
 
-/** tool_use出力の正規化 */
-function normalizeDiagnosis(input) {
-  const out = {
-    overall: typeof input?.overall === 'number' ? input.overall : Number(input?.overall ?? 0),
-    grade: typeof input?.grade === 'string' ? input.grade : 'B',
-    summary: typeof input?.summary === 'string' ? input.summary : '',
-    axes: Array.isArray(input?.axes) ? input.axes : [],
-    advice: Array.isArray(input?.advice) ? input.advice : [],
-    advice_detail: Array.isArray(input?.advice_detail) ? input.advice_detail : [],
-  };
-
-  if (!['S', 'A', 'B', 'C'].includes(out.grade)) out.grade = 'B';
-  out.overall = Math.max(0, Math.min(100, out.overall));
-
-  out.axes = out.axes
-    .filter(Boolean)
-    .map((ax) => ({
-      name: typeof ax?.name === 'string' ? ax.name : '',
-      score: typeof ax?.score === 'number' ? ax.score : Number(ax?.score ?? 0),
-      comment: typeof ax?.comment === 'string' ? ax.comment : '',
-    }))
-    .map((ax) => ({ ...ax, score: Math.max(0, Math.min(100, ax.score)) }));
-
-  out.advice = out.advice.map((s) => (typeof s === 'string' ? s : String(s)));
-  out.advice_detail = out.advice_detail.map((s) => (typeof s === 'string' ? s : String(s)));
-
-  return out;
-}
-
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (!anthropicKey) return res.status(500).json({ ok: false, error: 'ANTHROPIC_API_KEY not configured' });
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
 
-  const prompt = req.body?.prompt;
-  const category = req.body?.category || '';
-  const platform = req.body?.platform || '';
-  const text = req.body?.text || '';
-  const roles = req.body?.roles || [];
+  const prompt       = req.body?.prompt;
   const imageContents = req.body?.imageContents;
+  const category     = req.body?.category;
+  const platform     = req.body?.platform;
+  const text         = req.body?.text;
+  const roles        = req.body?.roles;
 
   if (!prompt || typeof prompt !== 'string') {
-    return res.status(400).json({ ok: false, error: 'prompt is required' });
+    return res.status(400).json({ error: 'prompt is required' });
   }
 
   const validImages = Array.isArray(imageContents)
     ? imageContents.filter(
-        (img) =>
-          img?.type === 'image' &&
-          img?.source?.type === 'base64' &&
-          typeof img?.source?.data === 'string' &&
-          img.source.data.length > 0
+        (img) => img?.type === 'image' && img?.source?.type === 'base64' && typeof img?.source?.data === 'string' && img.source.data.length > 0
       )
     : [];
 
   const contentBlocks = [...validImages, { type: 'text', text: prompt }];
 
-  // ✅ Claudeを tool_use で固定（JSON.parse不要）
-  const tools = [
-    {
-      name: 'emit_diagnosis',
-      description: 'Return diagnosis result as structured data.',
-      input_schema: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['overall', 'grade', 'summary', 'axes', 'advice', 'advice_detail'],
-        properties: {
-          overall: { type: 'number' },
-          grade: { type: 'string', enum: ['S', 'A', 'B', 'C'] },
-          summary: { type: 'string' },
-          axes: {
-            type: 'array',
-            items: {
-              type: 'object',
-              additionalProperties: false,
-              required: ['name', 'score', 'comment'],
-              properties: {
-                name: { type: 'string' },
-                score: { type: 'number' },
-                comment: { type: 'string' },
-              },
-            },
-          },
-          advice: { type: 'array', items: { type: 'string' }, minItems: 1 },
-          advice_detail: { type: 'array', items: { type: 'string' }, minItems: 1 },
-        },
-      },
-    },
-  ];
-
-  let diagnosis;
   try {
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': anthropicKey,
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
         model: 'claude-opus-4-5',
         max_tokens: 1500,
         temperature: 0,
-        tools,
-        tool_choice: { type: 'tool', name: 'emit_diagnosis' },
+        system: 'Return ONLY valid JSON. No prose. No markdown. No code fences. Use double quotes. No trailing commas.',
         messages: [{ role: 'user', content: contentBlocks }],
       }),
     });
 
     if (!anthropicRes.ok) {
       const errText = await anthropicRes.text().catch(() => '');
-      await postToGAS({ category, platform, roles, text, error: 'CLAUDE_API_ERROR', detail: errText.slice(0, 5000) });
-      return res.status(500).json({ ok: false, error: `Anthropic API error: ${anthropicRes.status}`, detail: errText });
+      console.error('Anthropic API error:', anthropicRes.status, errText);
+      return res.status(500).json({
+        error: `Anthropic API error: ${anthropicRes.status}`,
+        detail: errText,
+      });
     }
 
     const data = await anthropicRes.json();
-    const toolBlock = Array.isArray(data?.content)
-      ? data.content.find((b) => b?.type === 'tool_use' && b?.name === 'emit_diagnosis')
-      : null;
+    const rawText = Array.isArray(data?.content)
+      ? data.content.filter((b) => b?.type === 'text').map((b) => b.text).join('')
+      : '';
 
-    if (!toolBlock?.input) {
-      await postToGAS({ category, platform, roles, text, error: 'TOOL_USE_MISSING' });
-      return res.status(500).json({ ok: false, error: 'Tool output missing' });
+    const jsonCandidate = extractJsonCandidate(rawText);
+    const parsedResult = safeJsonParse(jsonCandidate);
+
+    if (!parsedResult.ok) {
+      console.error('JSON parse failed:', parsedResult.error);
+      console.error('rawText:', rawText);
+      await postToGAS({
+        category: category || '',
+        platform: platform || '',
+        text: text || '',
+        error: 'JSON_PARSE_FAILED',
+        detail: parsedResult.error,
+        raw: rawText?.slice?.(0, 5000) || rawText,
+      });
+      return res.status(200).json({
+        ok: false,
+        error: 'JSON_PARSE_FAILED',
+        detail: parsedResult.error,
+        raw: rawText,
+      });
     }
 
-    diagnosis = normalizeDiagnosis(toolBlock.input);
-  } catch (e) {
-    await postToGAS({ category, platform, roles, text, error: 'CLAUDE_EXCEPTION', detail: String(e).slice(0, 5000) });
-    return res.status(500).json({ ok: false, error: e?.message || 'Unknown error' });
-  }
+    const parsed = parsedResult.value;
 
-  // ✅ Cloudinary：失敗理由も残す
-  let imageUrls = [];
-  let cloudinaryError = '';
-  if (validImages.length > 0) {
+    // Cloudinaryに画像をアップロード（失敗しても診断結果は返す）
+    let imageUrls = [];
     try {
-      imageUrls = await Promise.all(validImages.map((img, i) => uploadToCloudinary(img.source.data, i)));
-    } catch (e) {
-      cloudinaryError = e?.message || String(e);
-      console.error('[Cloudinary] upload failed:', cloudinaryError);
+      imageUrls = await Promise.all(
+        validImages.map((img) => uploadToCloudinary(img.source.data))
+      );
+    } catch (cloudErr) {
+      console.error('Cloudinary upload failed:', cloudErr.message);
     }
+
+    // GASに記録
+    await postToGAS({
+      category: category || '',
+      platform: platform || '',
+      roles: Array.isArray(roles) ? roles.join(' / ') : (roles || ''),
+      text: text || '',
+      overall: parsed?.overall ?? '',
+      grade: parsed?.grade ?? '',
+      axes: parsed?.axes ?? '',
+      advice: parsed?.advice ?? '',
+      summary: parsed?.summary ?? '',
+      imageUrls: imageUrls.join('\n'),
+      feedback: '',
+      feedbackComment: '',
+    });
+
+    return res.status(200).json({
+      ok: true,
+      result: parsed,
+      imageUrls,
+    });
+
+  } catch (err) {
+    console.error('Handler error:', err?.message || err);
+    return res.status(500).json({ error: err?.message || 'Unknown error' });
   }
-
-  // ✅ GASへ（キー固定：列ズレしない）
-  await postToGAS({
-    category,
-    platform,
-    roles,              // 配列のままでOK（GAS側で join する）
-    text,
-    overall: diagnosis.overall,
-    grade: diagnosis.grade,
-    axes: diagnosis.axes,
-    advice: diagnosis.advice,
-    advice_detail: diagnosis.advice_detail,
-    summary: diagnosis.summary,
-    imageUrls,          // 配列のままでOK（GAS側で \n 連結）
-    cloudinaryError,    // ★これで「なぜURLが入らないか」がシートに残る
-  });
-
-  return res.status(200).json({
-    ok: true,
-    result: diagnosis,
-    imageUrls,
-    cloudinaryError,
-  });
 }
