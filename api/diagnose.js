@@ -1,5 +1,5 @@
 // pages/api/diagnose.js
-
+// v2
 const GAS_URL =
   'https://script.google.com/macros/s/AKfycbxwZvkREo8g0_6Gi3o9Dr3GY-WfGeplAyEv78UbDD4PxRzNdUF9K81eg-chSq6Y3Z85/exec';
 
