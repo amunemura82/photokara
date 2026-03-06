@@ -958,17 +958,17 @@
 <nav id="mainNav">
   <a href="#" class="logo">photo<span>kara</span></a>
   <ul id="navMenu">
-    <li><a href="#why" onclick="closeMenu()">ベネフィット</a></li>
-    <li><a href="#how" onclick="closeMenu()">使い方</a></li>
-    <li><a href="/manual.html" onclick="closeMenu()">ガイド</a></li>
-    <li><a href="#tool" onclick="closeMenu()">診断ツール</a></li>
-    <li><a href="#contact" class="nav-cta" onclick="closeMenu()">お問い合わせ</a></li>
+    <li><a href="#why">ベネフィット</a></li>
+    <li><a href="#how">使い方</a></li>
+    <li><a href="/manual.html">ガイド</a></li>
+    <li><a href="#tool">診断ツール</a></li>
+    <li><a href="#contact" class="nav-cta">お問い合わせ</a></li>
   </ul>
-  <button class="nav-hamburger" id="hamburgerBtn" aria-label="メニューを開く" onclick="toggleMenu()">
+  <button class="nav-hamburger" id="hamburgerBtn" aria-label="メニューを開く">
     <span></span><span></span><span></span>
   </button>
 </nav>
-<div class="nav-overlay" id="navOverlay" onclick="closeMenu()"></div>
+<div class="nav-overlay" id="navOverlay"></div>
 
 <!-- HERO -->
 <section class="hero">
@@ -1393,6 +1393,35 @@
 </footer>
 
 <script>
+  // ハンバーガーメニュー
+  function toggleMenu() {
+    const menu = document.getElementById('navMenu');
+    const btn = document.getElementById('hamburgerBtn');
+    const overlay = document.getElementById('navOverlay');
+    menu.classList.toggle('open');
+    btn.classList.toggle('open');
+    overlay.classList.toggle('visible');
+    document.body.style.overflow = menu.classList.contains('open') ? 'hidden' : '';
+  }
+  function closeMenu() {
+    const menu = document.getElementById('navMenu');
+    const btn = document.getElementById('hamburgerBtn');
+    const overlay = document.getElementById('navOverlay');
+    menu.classList.remove('open');
+    btn.classList.remove('open');
+    overlay.classList.remove('visible');
+    document.body.style.overflow = '';
+  }
+
+  // DOMContentLoaded後にイベント登録
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('hamburgerBtn').addEventListener('click', toggleMenu);
+    document.getElementById('navOverlay').addEventListener('click', closeMenu);
+    document.querySelectorAll('#navMenu a').forEach(function(a) {
+      a.addEventListener('click', closeMenu);
+    });
+  });
+
   // -----------------------------------------------
   // カテゴリ選択
   // -----------------------------------------------
