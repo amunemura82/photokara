@@ -397,6 +397,82 @@
     gap: 24px;
   }
 
+  /* スロットグリッドUI */
+  .img-slot {
+    aspect-ratio: 1;
+    border: 1.5px dashed #444;
+    border-radius: 6px;
+    background: #1a1a18;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .img-slot:hover { border-color: var(--accent); background: #2a2520; }
+  .img-slot.filled { border-style: solid; border-color: #444; }
+  .img-slot img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 5px;
+  }
+  .img-slot-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    color: #555;
+    margin-top: 8px;
+    text-align: center;
+    padding: 0 4px;
+  }
+  .img-slot-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .img-slot-remove {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 20px; height: 20px;
+    background: rgba(0,0,0,0.7);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    color: #fff;
+    cursor: pointer;
+    z-index: 2;
+    border: none;
+  }
+  .img-slot-role {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.75);
+    padding: 3px 4px;
+    z-index: 2;
+  }
+  .img-slot-role select {
+    width: 100%;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    background: transparent;
+    border: none;
+    color: #b5916a;
+    cursor: pointer;
+    outline: none;
+    padding: 0;
+  }
+  .img-slot-add {
+    font-size: 1.4rem;
+    color: #444;
+  }
+  @media (max-width: 480px) {
+    #slotGrid { grid-template-columns: repeat(3, 1fr) !important; }
+  }
+
   .diag-dropzone {
     border: 1.5px dashed #444;
     border-radius: 6px;
@@ -782,9 +858,73 @@
   }
 
   /* MOBILE */
+  /* ハンバーガーボタン */
+  .nav-hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 36px; height: 36px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    z-index: 200;
+  }
+  .nav-hamburger span {
+    display: block;
+    width: 22px; height: 1.5px;
+    background: var(--ink);
+    border-radius: 2px;
+    transition: all 0.3s;
+    transform-origin: center;
+  }
+  .nav-hamburger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+  .nav-hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+  .nav-hamburger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+  /* モバイルオーバーレイ */
+  .nav-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 149;
+  }
+  .nav-overlay.visible { display: block; }
+
   @media (max-width: 768px) {
-    nav { padding: 16px 24px; }
-    nav ul { display: none; }
+    nav { padding: 16px 20px; }
+    .nav-hamburger { display: flex; }
+    nav ul {
+      display: flex !important;
+      flex-direction: column;
+      position: fixed;
+      top: 0; right: -280px;
+      width: 260px; height: 100vh;
+      background: var(--paper);
+      border-left: 1px solid var(--rule);
+      padding: 80px 32px 40px;
+      gap: 0;
+      z-index: 150;
+      transition: right 0.3s cubic-bezier(0.16,1,0.3,1);
+      box-shadow: -8px 0 32px rgba(0,0,0,0.1);
+    }
+    nav ul.open { right: 0; }
+    nav ul li { border-bottom: 1px solid var(--rule); }
+    nav ul li a {
+      display: block;
+      padding: 16px 0;
+      font-size: 0.95rem;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    nav ul li a.nav-cta {
+      background: none;
+      color: var(--accent);
+      padding: 16px 0;
+      border-radius: 0;
+      font-size: 0.95rem;
+    }
 
     .hero { padding: 100px 24px 60px; }
     .hero::before { display: none; }
@@ -815,16 +955,20 @@
 <body>
 
 <!-- NAV -->
-<nav>
+<nav id="mainNav">
   <a href="#" class="logo">photo<span>kara</span></a>
-  <ul>
-    <li><a href="#why">あなたの写真、大丈夫？</a></li>
-    <li><a href="#how">使い方</a></li>
-    <li><a href="/manual.html">ガイド</a></li>
-    <li><a href="#tool">診断ツール</a></li>
-    <li><a href="#contact" class="nav-cta">お問い合わせ</a></li>
+  <ul id="navMenu">
+    <li><a href="#why" onclick="closeMenu()">ベネフィット</a></li>
+    <li><a href="#how" onclick="closeMenu()">使い方</a></li>
+    <li><a href="/manual.html" onclick="closeMenu()">ガイド</a></li>
+    <li><a href="#tool" onclick="closeMenu()">診断ツール</a></li>
+    <li><a href="#contact" class="nav-cta" onclick="closeMenu()">お問い合わせ</a></li>
   </ul>
+  <button class="nav-hamburger" id="hamburgerBtn" aria-label="メニューを開く" onclick="toggleMenu()">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
+<div class="nav-overlay" id="navOverlay" onclick="closeMenu()"></div>
 
 <!-- HERO -->
 <section class="hero">
@@ -855,40 +999,92 @@
   </div>
 </section>
 
-<!-- WHY -->
-<section class="section" id="why">
+<!-- BENEFIT -->
+<section class="section" id="why" style="background:#f9f6f1;">
   <div class="section-inner">
-    <p class="section-label reveal">PROBLEM</p>
-    <h2 class="reveal">
-      写真の価値は知られていない。<br>だから、売れないまま終わる。
+    <p class="section-label reveal" style="color:#b5916a;">WHAT YOU GET</p>
+    <h2 class="reveal" style="font-size:clamp(1.6rem,3vw,2.4rem); line-height:1.4;">
+      photokaraを使うと、<br>何が変わるのか。
     </h2>
 
-    <div class="problem-grid reveal">
-      <div class="problem-card">
-        <p class="problem-num">01</p>
-        <h3>写真と言葉が<br>噛み合っていない</h3>
-        <p>写真が「何を伝えるべきか」が言語化されていないと、社内での共有もお客様との共感も生まれません。伝わらない写真は、撮らなかったのと同じです。</p>
+    <div class="benefit-grid reveal">
+
+      <div class="benefit-card">
+        <div class="benefit-icon">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="23" stroke="#b5916a" stroke-width="1.2" fill="none"/>
+            <!-- スコアメーター -->
+            <path d="M12 32 A14 14 0 0 1 36 32" stroke="#333" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <path d="M12 32 A14 14 0 0 1 33 20" stroke="#b5916a" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <circle cx="33" cy="20" r="2.5" fill="#b5916a"/>
+            <text x="24" y="29" text-anchor="middle" font-family="monospace" font-size="7" fill="#b5916a" font-weight="bold">82</text>
+          </svg>
+        </div>
+        <div class="benefit-body">
+          <div class="benefit-title">写真の実力が<br>数字でわかる</div>
+          <div class="benefit-desc">「なんとなく良い・悪い」が9つのスコアで可視化。改善すべき点が一目瞭然です。</div>
+        </div>
       </div>
-      <div class="problem-card">
-        <p class="problem-num">02</p>
-        <h3>機材と腕前があれば<br>いい写真が撮れる？</h3>
-        <p>カメラマンなら誰でも撮れる、機材さえ良ければ写真に力が宿る——それは思い込みです。「何を伝えるか」が決まっていない写真に、訴求力は生まれません。</p>
+
+      <div class="benefit-card">
+        <div class="benefit-icon">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="23" stroke="#b5916a" stroke-width="1.2" fill="none"/>
+            <!-- 矢印（改善） -->
+            <rect x="10" y="28" width="12" height="8" rx="1.5" fill="#444"/>
+            <rect x="24" y="22" width="12" height="14" rx="1.5" fill="#b5916a" opacity="0.7"/>
+            <!-- 上昇矢印 -->
+            <polyline points="20,18 24,13 28,18" stroke="#b5916a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="24" y1="13" x2="24" y2="22" stroke="#b5916a" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="benefit-body">
+          <div class="benefit-title">「次に何をすべきか」<br>が具体的にわかる</div>
+          <div class="benefit-desc">点数だけでなく「なぜ低いか」「どう直すか」を具体的な言葉で提示します。</div>
+        </div>
       </div>
-      <div class="problem-card">
-        <p class="problem-num">03</p>
-        <h3>ECの写真は<br>お店の陳列棚と同じ</h3>
-        <p>商品ごとに照明がバラバラな店舗に、お客様は戻ってきますか？ECサイトの写真も同じです。バラバラな写真は、それだけでブランドの信頼を損ないます。</p>
+
+      <div class="benefit-card">
+        <div class="benefit-icon">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="23" stroke="#b5916a" stroke-width="1.2" fill="none"/>
+            <!-- 稟議・説明書類 -->
+            <rect x="13" y="12" width="22" height="26" rx="2" stroke="#b5916a" stroke-width="1.2" fill="none"/>
+            <line x1="17" y1="19" x2="31" y2="19" stroke="#b5916a" stroke-width="1.2" opacity="0.6"/>
+            <line x1="17" y1="23" x2="31" y2="23" stroke="#b5916a" stroke-width="1.2" opacity="0.6"/>
+            <line x1="17" y1="27" x2="26" y2="27" stroke="#b5916a" stroke-width="1.2" opacity="0.6"/>
+            <!-- チェックマーク -->
+            <circle cx="33" cy="33" r="6" fill="#b5916a"/>
+            <polyline points="30,33 32.5,35.5 36,31" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="benefit-body">
+          <div class="benefit-title">撮影発注の根拠に<br>なる採点シートが出る</div>
+          <div class="benefit-desc">診断結果をPDFで出力。「なぜ撮り直すか」を社内・外注先に説明できます。</div>
+        </div>
       </div>
-      <div class="problem-card">
-        <p class="problem-num">04</p>
-        <h3>あなたは商品を<br>触らずに買いますか？</h3>
-        <p>リアルな買い物では、手に取って、角度を変えて、納得してから買います。ECでその体験を代わりに担うのが写真です。その写真が機能していなければ、売れる理由がありません。</p>
+
+      <div class="benefit-card">
+        <div class="benefit-icon">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="23" stroke="#b5916a" stroke-width="1.2" fill="none"/>
+            <!-- 商品タグ＋価格アップ -->
+            <path d="M15 15 L15 28 L24 36 L33 28 L33 15 Z" stroke="#b5916a" stroke-width="1.2" fill="none"/>
+            <circle cx="20" cy="20" r="2" fill="#b5916a" opacity="0.7"/>
+            <!-- 矢印 -->
+            <polyline points="26,24 30,20 34,24" stroke="#b5916a" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+          </svg>
+        </div>
+        <div class="benefit-body">
+          <div class="benefit-title">写真への投資を<br>正当化できる</div>
+          <div class="benefit-desc">スコアが上がれば売上が上がる。写真予算を「コスト」ではなく「投資」として判断できます。</div>
+        </div>
       </div>
-      <div class="problem-card">
-        <p class="problem-num">05</p>
-        <h3>写真はコストか、<br>投資か、判断できない</h3>
-        <p>写真にお金をかけることが正しいのか判断できないのは、写真の力を社内で説明・共有できていないからです。基準がなければ、発注も売上も「なんとなく」のままです。</p>
-      </div>
+
+    </div>
+
+    <div class="benefit-cta reveal">
+      <a href="#tool" class="btn-primary">今すぐ無料で診断する →</a>
     </div>
   </div>
 </section>
@@ -897,85 +1093,162 @@
 <section class="section bg-paper2" id="how">
   <div class="section-inner">
     <p class="section-label reveal">HOW IT WORKS</p>
-    <h2 class="reveal">写真をアップして、<br>テキストを入れるだけ。</h2>
+    <h2 class="reveal">3ステップで、<br>写真の実力がわかる。</h2>
 
-    <div class="steps reveal">
-      <div class="step">
-        <h3>商品写真をアップロード</h3>
-        <p>最大8枚まで対応。複数枚をまとめて診断し、写真ごとにランキングを表示します。</p>
+    <div class="visual-steps reveal">
+
+      <div class="vstep">
+        <div class="vstep-icon">
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+            <rect width="56" height="56" rx="8" fill="#252523"/>
+            <!-- 写真枠 × 複数 -->
+            <rect x="8" y="14" width="22" height="18" rx="2" stroke="#b5916a" stroke-width="1.5" fill="none"/>
+            <rect x="14" y="20" width="22" height="18" rx="2" stroke="#b5916a" stroke-width="1.5" fill="none" opacity="0.6"/>
+            <rect x="20" y="26" width="22" height="18" rx="2" stroke="#b5916a" stroke-width="1.5" fill="none" opacity="0.3"/>
+            <!-- 矢印（アップロード） -->
+            <line x1="43" y1="38" x2="43" y2="28" stroke="#b5916a" stroke-width="1.5"/>
+            <polyline points="39,32 43,27 47,32" stroke="#b5916a" stroke-width="1.5" fill="none"/>
+          </svg>
+        </div>
+        <div class="vstep-num">01</div>
+        <div class="vstep-title">写真を全枚アップ</div>
+        <div class="vstep-body">ECに出品している商品写真を<strong>まとめて最大8枚</strong>アップロード。1枚ではなく、セットで診断するのがポイントです。</div>
       </div>
-      <div class="step">
-        <h3>訴求テキストを入力</h3>
-        <p>商品説明・キャプションを入力。EC特化7軸（ブランド・商品・シーン・ベネフィット等）で採点します。</p>
+
+      <div class="vstep-arrow">→</div>
+
+      <div class="vstep">
+        <div class="vstep-icon">
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+            <rect width="56" height="56" rx="8" fill="#252523"/>
+            <!-- テキスト行 -->
+            <rect x="10" y="15" width="36" height="3" rx="1.5" fill="#b5916a" opacity="0.9"/>
+            <rect x="10" y="22" width="28" height="3" rx="1.5" fill="#b5916a" opacity="0.5"/>
+            <rect x="10" y="29" width="32" height="3" rx="1.5" fill="#b5916a" opacity="0.5"/>
+            <rect x="10" y="36" width="20" height="3" rx="1.5" fill="#b5916a" opacity="0.3"/>
+            <!-- カーソル -->
+            <rect x="30" y="33" width="2" height="10" rx="1" fill="#b5916a"/>
+          </svg>
+        </div>
+        <div class="vstep-num">02</div>
+        <div class="vstep-title">商品説明文を貼り付け</div>
+        <div class="vstep-body">ECサイトに載せている商品説明文をそのままコピペ。入力が難しければ<strong>省略してもOK</strong>。</div>
       </div>
-      <div class="step">
-        <h3>AIが多角的に診断</h3>
-        <p>明るさ・コントラスト・シャープさ・雰囲気スコアを自動計算。S/A/B/Cのグレードで判定します。</p>
+
+      <div class="vstep-arrow">→</div>
+
+      <div class="vstep">
+        <div class="vstep-icon">
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+            <rect width="56" height="56" rx="8" fill="#252523"/>
+            <!-- スコアバー -->
+            <rect x="10" y="14" width="36" height="4" rx="2" fill="#333"/>
+            <rect x="10" y="14" width="30" height="4" rx="2" fill="#4caf50"/>
+            <rect x="10" y="22" width="36" height="4" rx="2" fill="#333"/>
+            <rect x="10" y="22" width="22" height="4" rx="2" fill="#b5916a"/>
+            <rect x="10" y="30" width="36" height="4" rx="2" fill="#333"/>
+            <rect x="10" y="30" width="28" height="4" rx="2" fill="#ff9800"/>
+            <!-- グレードA -->
+            <rect x="36" y="38" width="12" height="12" rx="2" fill="#558b2f"/>
+            <text x="42" y="48" text-anchor="middle" font-family="monospace" font-size="9" font-weight="bold" fill="white">A</text>
+          </svg>
+        </div>
+        <div class="vstep-num">03</div>
+        <div class="vstep-title">スコアと改善点を確認</div>
+        <div class="vstep-body">9軸で採点してS/A/B/Cのグレード判定。<strong>「なぜ・どう直すか」</strong>の具体的なアドバイスが表示されます。</div>
       </div>
-      <div class="step">
-        <h3>改善アドバイスを確認</h3>
-        <p>点数だけでなく「なぜ・どう直すか」を具体的に提示。次の撮影の指針になります。</p>
-      </div>
+
+    </div>
+
+    <div class="how-note reveal">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:2px">
+        <circle cx="8" cy="8" r="7" stroke="#b5916a" stroke-width="1.2"/>
+        <rect x="7.3" y="6.5" width="1.4" height="5" rx="0.7" fill="#b5916a"/>
+        <rect x="7.3" y="4" width="1.4" height="1.4" rx="0.7" fill="#b5916a"/>
+      </svg>
+      <span>1商品につき<strong>使っている写真を全枚アップ</strong>してください。1枚だけでは組写真としての構成力が診断できません。</span>
     </div>
 
     <!-- スコアデモ -->
     <div class="score-demo reveal" id="scoreDemo">
       <div class="score-demo-title">
-        SAMPLE REPORT — 鉄フライパン 24cm（燕産業）
+        SAMPLE REPORT — 黒トング 290mm（燕三条・村の鍛冶屋）
       </div>
+
+      <!-- 総合グレード -->
+      <div style="display:flex; align-items:center; gap:20px; margin-bottom:28px; padding:20px 24px; background:var(--paper); border-radius:6px; border:1px solid var(--rule);">
+        <div style="font-family:'DM Mono',monospace; font-size:3rem; font-weight:300; color:var(--accent); line-height:1;">78</div>
+        <div>
+          <div style="font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.2em; color:#888; margin-bottom:4px;">TOTAL SCORE</div>
+          <div style="display:inline-block; background:#558b2f; color:white; font-family:'DM Mono',monospace; font-size:0.7rem; letter-spacing:0.15em; padding:3px 12px; border-radius:2px;">B — 標準以上</div>
+          <div style="font-size:0.8rem; color:var(--muted); margin-top:8px; line-height:1.6;">黒酸化発色の質感と機能説明は良好。解像度不足と商品を主役にした構図の改善で上位グレードが狙える。</div>
+        </div>
+      </div>
+
+      <!-- 9軸スコア -->
       <div class="score-grid">
         <div class="score-item">
           <div class="score-item-label">明るさ</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="80"></div></div>
+          <div class="score-item-val">80 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">コントラスト</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="72"></div></div>
+          <div class="score-item-val">72 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">シャープさ</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="68"></div></div>
+          <div class="score-item-val">68 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">価値表現力</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="62"></div></div>
+          <div class="score-item-val">62 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">質感・素材感</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="85"></div></div>
+          <div class="score-item-val">85 / 100</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">清潔感</div>
           <div class="score-item-bar"><div class="score-item-fill" data-val="88"></div></div>
           <div class="score-item-val">88 / 100</div>
         </div>
         <div class="score-item">
-          <div class="score-item-label">コントラスト</div>
-          <div class="score-item-bar"><div class="score-item-fill" data-val="74"></div></div>
-          <div class="score-item-val">74 / 100</div>
+          <div class="score-item-label">誠実度</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="90"></div></div>
+          <div class="score-item-val">90 / 100</div>
         </div>
         <div class="score-item">
-          <div class="score-item-label">シャープさ</div>
-          <div class="score-item-bar"><div class="score-item-fill" data-val="91"></div></div>
-          <div class="score-item-val">91 / 100</div>
-        </div>
-        <div class="score-item">
-          <div class="score-item-label">高級感</div>
+          <div class="score-item-label">テキスト訴求力</div>
           <div class="score-item-bar"><div class="score-item-fill" data-val="82"></div></div>
           <div class="score-item-val">82 / 100</div>
         </div>
         <div class="score-item">
-          <div class="score-item-label">質感・素材感</div>
-          <div class="score-item-bar"><div class="score-item-fill" data-val="95"></div></div>
-          <div class="score-item-val">95 / 100</div>
-        </div>
-        <div class="score-item">
-          <div class="score-item-label">テキスト訴求力</div>
-          <div class="score-item-bar"><div class="score-item-fill" data-val="67"></div></div>
-          <div class="score-item-val">67 / 100</div>
-        </div>
-        <div class="score-item">
-          <div class="score-item-label">総合スコア</div>
-          <div class="score-item-bar">
-            <div class="score-item-fill" data-val="84" style="background: var(--ink);"></div>
-          </div>
-          <div class="score-item-val" style="font-weight:600;">84 / 100 [A 良好]</div>
+          <div class="score-item-label">解像度・画質</div>
+          <div class="score-item-bar"><div class="score-item-fill" data-val="55"></div></div>
+          <div class="score-item-val">55 / 100</div>
         </div>
       </div>
+
+      <!-- 改善アドバイス -->
       <div style="margin-top:28px; border-left:3px solid var(--accent); padding:20px 24px; background:var(--paper-2); border-radius:0 4px 4px 0;">
         <div style="font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.15em; color:var(--accent); margin-bottom:14px;">IMPROVEMENT ADVICE</div>
         <ul style="list-style:none; display:flex; flex-direction:column; gap:14px;">
           <li style="font-size:0.88rem; color:var(--muted); line-height:1.9; padding-left:18px; position:relative;">
             <span style="position:absolute;left:0;color:var(--accent);">→</span>
-            <strong style="color:var(--ink);">【コントラスト】</strong>商品と背景の明暗差がやや不足しています。鉄の質感が背景に溶け込み、商品の存在感が弱まっています。黒または深いグレーの背景に変更するか、サイド光を強めて商品の立体感を際立たせることを推奨します。
+            <strong style="color:var(--ink);">【解像度】</strong>現状700×700pxは自社ECでの拡大表示に不十分。黒酸化発色の繊細な質感を伝えるには最低2000px以上での再撮影が必要です。
           </li>
           <li style="font-size:0.88rem; color:var(--muted); line-height:1.9; padding-left:18px; position:relative;">
             <span style="position:absolute;left:0;color:var(--accent);">→</span>
-            <strong style="color:var(--ink);">【訴求テキスト】</strong>商品説明に価格・サイズの数値情報が不足しています。「いくらで買えるか」が見えないと購買決定のハードルが上がります。「直径24cm・重量1.2kg・12,000円」など具体的な数値を冒頭に記載することで訴求力が大幅に向上します。
+            <strong style="color:var(--ink);">【価値表現力】</strong>サイドライトを加えてエッジのハイライトを際立たせると、燕三条製ならではの精密な加工技術が視覚的に伝わります。
           </li>
           <li style="font-size:0.88rem; color:var(--muted); line-height:1.9; padding-left:18px; position:relative;">
             <span style="position:absolute;left:0;color:var(--accent);">→</span>
-            <strong style="color:var(--ink);">【質感演出】</strong>鉄フライパンの最大の魅力である「焼き面の質感」がまだ伝わりきっていません。実際に調理した後の焼き色や、表面の凹凸をクローズアップした寄りカットを1枚追加することで、素材の説得力が格段に上がります。
+            <strong style="color:var(--ink);">【構図】</strong>3サイズ比較は購買判断に有効ですが、メイン商品を画面中央に大きく配置し「これが主役」と明示する構図に変えることで訴求力が上がります。
           </li>
         </ul>
       </div>
@@ -1026,18 +1299,20 @@
       <!-- 03 画像アップロード（役割選択付き） -->
       <div>
         <p style="font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.15em; color:#666; margin-bottom:10px;">03 — 商品写真をアップロード（最大8枚）</p>
-        <div class="diag-dropzone" id="dropzone">
-          <input type="file" id="imageInput" accept="image/jpeg,image/png,image/webp" multiple>
-          <div class="diag-dropzone-icon">📷</div>
-          <div class="diag-dropzone-label">
-            ここをタップ、またはドラッグ＆ドロップ<br>
-            <strong>JPEG / PNG / WebP・1枚5MB以下</strong>
-          </div>
+        <!-- 複数枠が最初から見える新しいアップロードUI -->
+        <div id="slotGrid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px;">
+          <!-- スロットはJSで生成 -->
         </div>
-        <!-- 役割選択UI（画像アップ後に表示） -->
-        <div id="roleAssignArea" style="display:none; margin-top:16px;">
-          <p style="font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.12em; color:#666; margin-bottom:12px;">各写真の役割を選択してください</p>
-          <div id="roleCards" style="display:flex; flex-direction:column; gap:12px;"></div>
+        <div id="addSlotRow" style="text-align:center; margin-top:4px;">
+          <button id="addSlotBtn" style="font-family:'DM Mono',monospace; font-size:0.7rem; letter-spacing:0.1em; color:#666; background:none; border:1px dashed #444; border-radius:4px; padding:8px 20px; cursor:pointer;">
+            ＋ 枠を追加（最大8枚）
+          </button>
+        </div>
+        <!-- 隠しinput（既存JS流用） -->
+        <input type="file" id="imageInput" accept="image/jpeg,image/png,image/webp" multiple style="display:none">
+        <!-- 役割選択UI（スロット内に統合） -->
+        <div id="roleAssignArea" style="display:none;">
+          <div id="roleCards"></div>
         </div>
       </div>
 
@@ -1193,20 +1468,119 @@
   let selectedFiles = [];
   const imageInput = document.getElementById('imageInput');
   const imagePreview = document.getElementById('imagePreview');
-  const dropzone = document.getElementById('dropzone');
+  const dropzone = document.getElementById('dropzone'); // スロットUIでは未使用
 
-  imageInput.addEventListener('change', handleFiles);
+  // ---- スロットグリッドUI ----
+  const SLOT_ROLES = [
+    '1枚目：サムネ・第一印象','2枚目：全体像・白背景','3枚目：ディテール・素材感',
+    '4枚目：使用シーン','5枚目：スペック・比較','6枚目：ストーリー・世界観',
+    '7枚目：梱包・同梱品','8枚目：その他・補足'
+  ];
+  const MAX_SLOTS = 8;
+  let slotFiles = [null, null, null, null]; // 最初は4枠
 
-  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
-  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-  dropzone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropzone.classList.remove('dragover');
-    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-    addFiles(files);
+  function renderSlots() {
+    const grid = document.getElementById('slotGrid');
+    grid.innerHTML = '';
+    slotFiles.forEach((file, i) => {
+      const slot = document.createElement('div');
+      slot.className = 'img-slot' + (file ? ' filled' : '');
+      slot.dataset.index = i;
+
+      if (file) {
+        const url = URL.createObjectURL(file);
+        const img = document.createElement('img');
+        img.src = url;
+        slot.appendChild(img);
+
+        // 役割セレクト
+        const roleDiv = document.createElement('div');
+        roleDiv.className = 'img-slot-role';
+        const sel = document.createElement('select');
+        sel.id = 'role_' + i;
+        SLOT_ROLES.forEach((r, ri) => {
+          const opt = document.createElement('option');
+          opt.value = r;
+          opt.textContent = r.length > 10 ? r.slice(0,10)+'…' : r;
+          if (ri === i) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        roleDiv.appendChild(sel);
+        slot.appendChild(roleDiv);
+
+        // 削除ボタン
+        const rm = document.createElement('button');
+        rm.className = 'img-slot-remove';
+        rm.textContent = '×';
+        rm.onclick = (e) => { e.stopPropagation(); slotFiles[i] = null; syncSelectedFiles(); renderSlots(); };
+        slot.appendChild(rm);
+      } else {
+        const num = document.createElement('div');
+        num.className = 'img-slot-num';
+        num.textContent = '0' + (i+1);
+        slot.appendChild(num);
+        const plus = document.createElement('div');
+        plus.className = 'img-slot-add';
+        plus.textContent = '+';
+        slot.appendChild(plus);
+        const lbl = document.createElement('div');
+        lbl.className = 'img-slot-label';
+        lbl.textContent = SLOT_ROLES[i] ? SLOT_ROLES[i].replace(/^\d+枚目：/, '') : '写真を追加';
+        slot.appendChild(lbl);
+        slot.onclick = () => { currentSlotIndex = i; imageInput.click(); };
+      }
+      grid.appendChild(slot);
+    });
+
+    // 追加ボタン表示制御
+    document.getElementById('addSlotRow').style.display = slotFiles.length >= MAX_SLOTS ? 'none' : 'block';
+  }
+
+  function syncSelectedFiles() {
+    selectedFiles = slotFiles.filter(Boolean);
+    // 既存のrenderPreviewsは使わない（スロットUIで代替）
+  }
+
+  let currentSlotIndex = -1;
+
+  imageInput.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+    if (files.length === 0) return;
+    if (currentSlotIndex >= 0 && currentSlotIndex < slotFiles.length) {
+      // 特定スロットへ
+      slotFiles[currentSlotIndex] = files[0];
+      // 追加ファイルが複数あれば空スロットへ順番に入れる
+      for (let k = 1; k < files.length; k++) {
+        const empty = slotFiles.indexOf(null);
+        if (empty >= 0) slotFiles[empty] = files[k];
+        else if (slotFiles.length < MAX_SLOTS) { slotFiles.push(files[k]); }
+      }
+    } else {
+      // 一括追加（空スロットへ）
+      files.forEach(f => {
+        const empty = slotFiles.indexOf(null);
+        if (empty >= 0) slotFiles[empty] = f;
+        else if (slotFiles.length < MAX_SLOTS) slotFiles.push(f);
+      });
+    }
+    currentSlotIndex = -1;
+    imageInput.value = '';
+    syncSelectedFiles();
+    renderSlots();
   });
 
+  document.getElementById('addSlotBtn').addEventListener('click', () => {
+    if (slotFiles.length < MAX_SLOTS) {
+      slotFiles.push(null);
+      renderSlots();
+    }
+  });
+
+  // 初期描画
+  renderSlots();
+
   function handleFiles(e) {
+    // 後方互換（使われないが残す）
     addFiles(Array.from(e.target.files));
   }
 
@@ -1460,9 +1834,10 @@ adviceは必ず以下の条件で書いてください：
           category: selectedCategory,
           platform: selectedPlatform,
           text: document.getElementById('diagText').value.trim(),
-          roles: selectedFiles.map((f, i) => {
-            const sel = document.getElementById(`role_${i}`);
-            return sel ? sel.value : 'その他';
+          roles: slotFiles.filter(Boolean).map((f, i) => {
+            const actualIdx = slotFiles.indexOf(f);
+            const sel = document.getElementById(`role_${actualIdx}`);
+            return sel ? sel.value : SLOT_ROLES[i] || 'その他・未分類';
           })
         })
       });
